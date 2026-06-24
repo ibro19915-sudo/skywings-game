@@ -1,0 +1,22 @@
+/* Remove the browser's default spacing */
+body {
+      margin:0;
+      padding:0;
+      /* Center everythin */
+      display:flex;
+      justify-content: center;
+      align-items: center;
+      /* Make the page fill the entire screen */
+      width:100vw;
+      height:100vh;
+      /* Background color */
+      background-color: #87ceeb;
+
+}
+/* Style the game window */
+canvas {
+background-color:#6ec6ff;
+border: 4px solid black;
+box-shadow:0px 0px 20px rgba(0,0,0,0.4);
+
+}
