@@ -1,3 +1,5 @@
+import { getSelectedSkin } from "./skins.js";
+
 export class Bird {
 
     x: number;
@@ -10,33 +12,25 @@ export class Bird {
     images: HTMLImageElement[];
     frame: number;
     frameCounter: number;
+constructor() {
 
-    constructor() {
+    this.x = 120;
+    this.y = 350;
 
-        this.x = 120;
-        this.y = 350;
+    this.width = 90;
+    this.height = 80;
 
-        this.width = 90;
-        this.height = 80;
+    this.velocityY = 0;
+    this.angle = 0;
 
-        this.velocityY = 0;
-        this.angle = 0;
+    // Animation
+    this.images = [];
 
-        // Animation
-        this.images = [];
+    this.loadSkin();
 
-        for (let i = 1; i <= 3; i++) {
-
-            const img = new Image();
-            img.src = `assets/images/bird.png${i}.png`;
-
-            this.images.push(img);
-
-        }
-
-        this.frame = 0;
-        this.frameCounter = 0;
-    }
+    this.frame = 0;
+    this.frameCounter = 0;
+}
 
     update(): void {
 
@@ -73,6 +67,21 @@ export class Bird {
 jump(): void {
     this.velocityY = -9;
     this.angle = -25;
+}
+loadSkin(): void {
+
+    this.images = [];
+
+    const selectedSkin = getSelectedSkin();
+
+    for (let i = 1; i <= 3; i++) {
+
+        const img = new Image();
+        img.src = `assets/images/${selectedSkin}bird${i}.png`;
+
+        this.images.push(img);
+    }
+
 }
 
     draw(ctx: CanvasRenderingContext2D): void {

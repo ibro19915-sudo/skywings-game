@@ -1,3 +1,5 @@
+import type { Difficulty } from "./difficulty.js";
+
 export class Pipe {
 
     x: number;
@@ -5,21 +7,33 @@ export class Pipe {
     gap: number;
     width: number;
     speed: number;
-  passed: boolean;
-  image: HTMLImageElement;
+    passed: boolean;
+    image: HTMLImageElement;
 
-
-
-    constructor() {
+    constructor(difficulty: Difficulty = "normal") {
         this.x = 480;
         this.topHeight = 200;
-        this.gap = 170;
+
+        switch (difficulty) {
+            case "easy":
+                this.gap = 200;
+                break;
+            case "normal":
+                this.gap = 170;
+                break;
+            case "hard":
+                this.gap = 145;
+                break;
+            case "insane":
+                this.gap = 120;
+                break;
+        }
+
         this.width = 70;
         this.speed = 3;
         this.passed = false;
         this.image = new Image();
-this.image.src = "assets/images/pipe.png";
-
+        this.image.src = "assets/images/pipe.png";
     }
 
     update(): void {

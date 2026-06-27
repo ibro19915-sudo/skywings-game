@@ -3,6 +3,38 @@ import { Pipe } from "./pipe.js";
 import { checkCollision } from "./collision.js";
 import { Ground  }   from "./ground.js";
 import { Clouds } from "./clouds.js";
+import {
+
+    saveUnlockedSkin,
+    isSkinUnlocked,
+    saveSelectedSkin,
+    getSelectedSkin,
+    SkinType
+} from "./skins.js"
+
+import { drawGameOver, drawPauseScreen, drawResumeCountdown, drawMenu, drawHUD, drawAchievementPopup, drawMedalPopup, drawSkinUnlockPopup, drawScorePopup } from "./ui.js";
+import { playWing, playScore, playHit, playDie, setAudioSettings } from "./audio.js";
+import { achievementText, achievementTimer, medalText, medalTimer, skinUnlockText, skinUnlockTimer, unlockedSkin, onScore, decrementTimers, resetAchievements } from "./achievements.js";
+import { resetGame as resetGameInternal } from "./reset.js";
+import {
+    loadStatistics,
+    saveStatistics,
+    type Statistics
+} from "./statistics.js";
+import { drawStatisticsScreen } from "./statisticsScreen.js";
+import {
+    getDifficulty,
+    saveDifficulty,
+    Difficulty
+} from "./difficulty.js";
+import { loadSettings, saveSettings, type Settings } from "./settings.js";
+import { createSettingsMenuState, drawSettingsMenu, updateSettingsMenu, type SettingsMenuState } from "./settingsMenu.js";
+import { FPSCounter } from "./fps.js";
+import { addXP,xpNeeded } from "./xp.js";
+
+import { setupInput } from "./input.js";
+
+
 
 
 // Find the canvas on the webpage
@@ -15,10 +47,7 @@ const ctx = canvas.getContext("2d")!;
 const bird = new Bird();
 const ground = new Ground();
 const clouds = new Clouds();
-const wingSound = new Audio("assets/sounds/wing.mp3");
-const scoreSound = new Audio ("assets/sounds/score.mp3");
-const hitSound = new Audio("assets/sounds/hit.mp3");
-const dieSound = new Audio("assets/sounds/die.mp3");
+// Audio is handled in src/audio.ts via helper functions
 
 const bronzeMedal = new Image();
 bronzeMedal.src = "assets/images/bronze.png";
@@ -33,210 +62,419 @@ const diamondMedal = new Image();
 diamondMedal.src = "assets/images/diamond.png";
 
 
-
-
-
 let score = 0;
-let bestScore = 0;
+let bestScore = Number(localStorage.getItem("bestScore")) || 0;
+let scorePopupTimer = 0;
 let gameOver = false;
 let gameStarted = false;
 let countdown = 3;
 let countdownRunning = false;
 let showGo =false;
+let newRecord = false;
+const skins: SkinType[] = [
+    "red",
+    "blue",
+    "gold",
+    "diamond"
+];
 
+let currentSkinIndex =
+    skins.indexOf(getSelectedSkin());
+
+// achievement/medal/skin state moved to src/achievements.ts
+
+// pauser
+let paused = false;
+
+// resume countdown
+let resumeCountdown = 3;
+let resumeCountdownRunning = false;
 // Menu animation
 let menuBirdY = bird.y;
 let menuTime = 0;
 
+
+//count playtime
+let lastTime = performance.now();
+let statisticsSaveAccumulator = 0;
+
+// showing statistics
+let showStatistics = false;
+
+//difficulty
+let currentDifficulty: Difficulty = getDifficulty();
+const difficulties: Difficulty[] = ["easy", "normal", "hard", "insane"];
+
+let settings: Settings = loadSettings();
+let showSettingsMenu = false;
+let settingsMenuState: SettingsMenuState | null = null;
+let showResetConfirmation = false;
+let resetConfirmationChoice: "yes" | "no" = "yes";
+let fpsCounter = new FPSCounter();
+
+// stattiscs
+let statistics: Statistics = loadStatistics();
+
+// level up
+let levelUpText = "";
+let levelUpTimer = 0;
+
 const pipes: Pipe[] = [];
 
 for(let i = 0; i < 3; i++) {
-    const pipe = new Pipe();
+    const pipe = new Pipe(currentDifficulty);
     pipe.x = 480 + i * 250;
     pipes.push(pipe);
 }
 
-document.addEventListener("keydown", (event) => {
 
-    if (event.code !== "Space") {
+// Input handlers
+function onTogglePause(): void {
+    if (gameStarted && !gameOver) {
+        if (!paused && !resumeCountdownRunning) {
+            paused = true;
+        } else if (paused) {
+            paused = false;
+            resumeCountdownRunning = true;
+            resumeCountdown = 3;
+
+            const timer = setInterval(() => {
+                resumeCountdown--;
+                if (resumeCountdown <= 0) {
+                    clearInterval(timer);
+                    resumeCountdownRunning = false;
+                }
+            }, 1000);
+        }
+    }
+}
+
+function onChangeSkinLeft(): void {
+    if (!gameStarted && !countdownRunning && !showStatistics && !showSettingsMenu) {
+        do {
+            currentSkinIndex--;
+            if (currentSkinIndex < 0) {
+                currentSkinIndex = skins.length - 1;
+            }
+        } while (!isSkinUnlocked(skins[currentSkinIndex]));
+
+        saveSelectedSkin(skins[currentSkinIndex]);
+        bird.loadSkin();
+    }
+}
+
+function onChangeSkinRight(): void {
+    if (!gameStarted && !countdownRunning && !showStatistics && !showSettingsMenu) {
+        do {
+            currentSkinIndex++;
+            if (currentSkinIndex >= skins.length) {
+                currentSkinIndex = 0;
+            }
+        } while (!isSkinUnlocked(skins[currentSkinIndex]));
+
+        saveSelectedSkin(skins[currentSkinIndex]);
+        bird.loadSkin();
+    }
+}
+
+function onChangeDifficultyPrev(): void {
+    if (!gameStarted && !countdownRunning) {
+        const currentIndex = difficulties.indexOf(currentDifficulty);
+        const nextIndex = (currentIndex - 1 + difficulties.length) % difficulties.length;
+        currentDifficulty = difficulties[nextIndex];
+        saveDifficulty(currentDifficulty);
+    }
+}
+
+function onChangeDifficultyNext(): void {
+    if (!gameStarted && !countdownRunning) {
+        const currentIndex = difficulties.indexOf(currentDifficulty);
+        const nextIndex = (currentIndex + 1) % difficulties.length;
+        currentDifficulty = difficulties[nextIndex];
+        saveDifficulty(currentDifficulty);
+    }
+}
+
+function onSpace(): void {
+    if (showSettingsMenu || showStatistics) {
         return;
     }
 
-    if (!gameStarted && !countdownRunning) {
+    if (countdownRunning || showGo || resumeCountdownRunning) {
+        return;
+    }
 
+    if (!gameStarted) {
         countdownRunning = true;
         countdown = 3;
 
         const timer = setInterval(() => {
-
             countdown--;
-
             if (countdown === 0) {
-
                 clearInterval(timer);
-
                 countdownRunning = false;
                 showGo = true;
 
                 setTimeout(() => {
-
                     showGo = false;
                     gameStarted = true;
-
+                    statistics.gamesPlayed++;
+                    saveStatistics(statistics);
                     bird.y = menuBirdY;
                     bird.jump();
-
-                    wingSound.pause();
-                    wingSound.currentTime = 0;
-                    wingSound.play();
-
+                    playWing();
                 }, 700);
             }
-
         }, 1000);
 
     } else if (gameOver) {
+        score = 0;
+        gameOver = false;
+        gameStarted = false;
+        newRecord = false;
+        paused = false;
 
-        resetGame();
+        menuTime = 0;
+        menuBirdY = 350;
+
+        resetGameInternal(bird, ground, clouds, pipes, Pipe, statistics);
 
     } else {
-
         bird.jump();
-
-        wingSound.pause();
-        wingSound.currentTime = 0;
-        wingSound.play();
-
+        playWing();
     }
+}
 
+setupInput({
+    onTogglePause,
+    onChangeSkinLeft,
+    onChangeSkinRight,
+    onChangeDifficultyPrev,
+    onChangeDifficultyNext,
+    onOpenSettings: () => {
+        if (!gameStarted && !countdownRunning && !showStatistics && !showSettingsMenu) {
+            openSettingsMenu();
+        }
+    },
+    onSettingsKey: (key: string) => {
+        handleSettingsKey(key);
+    },
+    onSpace,
+    onShowStatistics: () => {
+        if (!gameStarted && !showSettingsMenu && !showStatistics) {
+            showStatistics = true;
+        }
+    },
+    onHideStatistics: () => {
+        if (showSettingsMenu) {
+            showSettingsMenu = false;
+            settingsMenuState = null;
+        } else if (showStatistics) {
+            showStatistics = false;
+        }
+    }
 });
 
+function openSettingsMenu(): void {
+    if (!gameStarted && !countdownRunning) {
+        settings = loadSettings();
+        currentDifficulty = settings.difficulty;
+        setAudioSettings(settings);
+        settingsMenuState = createSettingsMenuState(settings);
+        showSettingsMenu = true;
+        showResetConfirmation = false;
+        resetConfirmationChoice = "yes";
+    }
+}
+
+function resetAllProgress(): void {
+    localStorage.removeItem("bestScore");
+    localStorage.removeItem("skywings_statistics");
+    localStorage.removeItem("skywings_difficulty");
+    localStorage.removeItem("skywings_settings");
+    localStorage.removeItem("selectedSkin");
+    localStorage.removeItem("skin_blue");
+    localStorage.removeItem("skin_gold");
+    localStorage.removeItem("skin_diamond");
+    localStorage.removeItem("skywings_achievements");
+    localStorage.removeItem("skywings_medals");
+
+    localStorage.setItem("bestScore", "0");
+    bestScore = 0;
+    score = 0;
+    statistics = loadStatistics();
+    currentDifficulty = getDifficulty();
+    settings = loadSettings();
+    settings.difficulty = currentDifficulty;
+    settings.soundEffects = true;
+    settings.fpsCounter = false;
+    saveSettings(settings);
+    setAudioSettings(settings);
+    currentSkinIndex = skins.indexOf(getSelectedSkin());
+}
+
+function handleSettingsKey(key: string): void {
+    if (!showSettingsMenu || !settingsMenuState) {
+        return;
+    }
+
+    if (showResetConfirmation) {
+        if (key === "Escape") {
+            showResetConfirmation = false;
+            return;
+        }
+
+        if (key === "ArrowLeft") {
+            resetConfirmationChoice = "yes";
+            return;
+        }
+
+        if (key === "ArrowRight") {
+            resetConfirmationChoice = "no";
+            return;
+        }
+
+        if (key === "Enter") {
+            if (resetConfirmationChoice === "yes") {
+                resetAllProgress();
+                showSettingsMenu = false;
+                settingsMenuState = null;
+            }
+            showResetConfirmation = false;
+            return;
+        }
+
+        return;
+    }
+
+    if (key === "Escape") {
+        showSettingsMenu = false;
+        settingsMenuState = null;
+        return;
+    }
+
+    if (key === "Enter" && settingsMenuState.selectedOption === "resetProgress") {
+        showResetConfirmation = true;
+        return;
+    }
+
+    const updated = updateSettingsMenu(settingsMenuState, key);
+    settingsMenuState = updated;
+    settings = updated.settings;
+    currentDifficulty = settings.difficulty;
+    setAudioSettings(settings);
+    saveSettings(settings);
+
+    if (key === "Enter" && settingsMenuState.selectedOption === "back") {
+        showSettingsMenu = false;
+        settingsMenuState = null;
+    }
+}
+
+// unlockAchievement/unlockMedal moved to src/achievements.ts
+function triggerGameOver(): void {
+
+    statistics.totalCrashes++;
+    statistics.totalScore += score;
+    saveStatistics(statistics);
+
+    gameOver = true;
+}
+
+
 function gameLoop(): void {
+    const now = performance.now();
+    const delta = (now - lastTime) / 1000;
+    lastTime = now;
+    if (gameStarted && !paused && !gameOver) {
+        statistics.playTime += delta;
+        statisticsSaveAccumulator += delta;
+        if (statisticsSaveAccumulator >= 1) {
+            saveStatistics(statistics);
+            statisticsSaveAccumulator -= 1;
+        }
+    }
 
     if (gameOver) {
+        drawGameOver(
+            ctx,
+            canvas,
+            score,
+            bestScore,
+            newRecord,
+            achievementText,
+            bronzeMedal,
+            silverMedal,
+            goldMedal,
+            diamondMedal,
+            medalText,
+            skinUnlockText
+        );
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+     // ===== PAUSE =====
+   // ===== PAUSE =====
+if (paused) {
 
-        ctx.fillStyle = "rgba(0,0,0,0.6)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-ctx.fillStyle = "white";
-ctx.textAlign = "center";
+        drawPauseScreen(ctx, canvas);
 
-ctx.font = "60px Arial";
-ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2);
-
-ctx.font = "30px Arial";
-ctx.fillText(
-    "Score: " + score,
-    canvas.width / 2,
-    canvas.height / 2 + 60
-);
-
-ctx.fillText(
-    "Best Score: " + bestScore,
-    canvas.width / 2,
-    canvas.height / 2 + 100
-);
-let medal: HTMLImageElement | null = null;
-
-if (score >= 50) {
-    medal = diamondMedal;
-}
-else if (score >= 30) {
-    medal = goldMedal;
-}
-else if (score >= 20) {
-    medal = silverMedal;
-}
-else if (score >= 10) {
-    medal = bronzeMedal;
-}
-
-if (medal) {
-    ctx.drawImage(
-        medal,
-        canvas.width / 2 - 32,
-        canvas.height / 2 + 120,
-        64,
-        64
-    );
-}
-
-ctx.font = "22px Arial";
-ctx.fillText(
-    "Press SPACE to Restart",
-    canvas.width / 2,
-    canvas.height / 2 + 210
-);
         requestAnimationFrame(gameLoop);
         return;
     }
 
-   
+// ===== RESUME COUNTDOWN =====
+if (resumeCountdownRunning) {
+
+    drawResumeCountdown(ctx, canvas, clouds, pipes, ground, bird, resumeCountdown, score);
+    requestAnimationFrame(gameLoop);
+    return;
+}
+
+if (showStatistics) {
+    drawStatisticsScreen(
+        ctx,
+        canvas,
+        statistics,
+        bestScore
+    );
+    requestAnimationFrame(gameLoop);
+    return;
+}
+
+if (showSettingsMenu && settingsMenuState) {
+    drawSettingsMenu(ctx, canvas, settingsMenuState, showResetConfirmation, resetConfirmationChoice);
+    if (settings.fpsCounter) {
+        fpsCounter.update();
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+        ctx.textAlign = "right";
+        ctx.fillText(`FPS: ${fpsCounter.getValue()}`, canvas.width - 20, 30);
+    }
+    requestAnimationFrame(gameLoop);
+    return;
+}
 
     // ================= MENU =================
 
     if (!gameStarted) {
-// Draw Sky
-ctx.fillStyle = "#87CEEB";
-ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-// Clouds
-clouds.update();
-clouds.draw(ctx);
-
-        ctx.fillStyle = "white";
-        ctx.font = "48px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText("SKY WINGS", canvas.width / 2, 120);
-
-       if (!countdownRunning) {
-    ctx.font = "28px Arial";
-    ctx.fillText("Press SPACE to Start", canvas.width / 2, 200);
-}
-        if (countdownRunning) {
-
-    ctx.fillStyle = "white";
-    ctx.font = "80px Arial";
-    ctx.textAlign = "center";
-
-    ctx.fillText(
-        countdown.toString(),
-        canvas.width / 2,
-        canvas.height / 2
-    );
-
-    requestAnimationFrame(gameLoop);
-    return;
-}
-if (showGo) {
-
-    ctx.fillStyle = "#FFD700";
-    ctx.font = "90px Arial";
-    ctx.textAlign = "center";
-
-    ctx.fillText(
-        "GO!",
-        canvas.width / 2,
-        canvas.height / 2
-    );
-
-    requestAnimationFrame(gameLoop);
-    return;
-}
         menuTime += 0.05;
-        bird.y = menuBirdY + Math.sin(menuTime) * 8;
-
-        bird.draw(ctx);
-
-        ground.update();
-        ground.draw(ctx);
-
+        drawMenu(ctx, canvas, clouds, bird, ground, menuBirdY, menuTime, countdownRunning, countdown, showGo, currentSkinIndex, skins, score, currentDifficulty);
         requestAnimationFrame(gameLoop);
         return;
     }
 
     // ================= GAME =================
 // Draw Sky
-ctx.fillStyle = "#87CEEB";
+let skyColor = "#87CEEB";
+if (score >= 30) {
+    skyColor = "#FFA500"; // Sunrise
+} else if (score >= 20) {
+    skyColor = "#191970"; // Night
+} else if (score >= 10) {
+    skyColor = "#FF7F50"; // Sunset
+}
+ctx.fillStyle = skyColor;
 ctx.fillRect(0, 0, canvas.width, canvas.height);
     // Clouds
 clouds.update();
@@ -249,46 +487,76 @@ clouds.draw(ctx);
 
     bird.y = canvas.height - bird.height;
 
-    if (score > bestScore) {
-        bestScore = score;
-    }
+   if (score > bestScore){
+    bestScore = score;
+    localStorage.setItem("bestScore", bestScore.toString());
+    newRecord = true;
+   }
 
-    hitSound.pause();
-hitSound.currentTime = 0;
-hitSound.play();
+    playHit();
 
 setTimeout(() => {
-    dieSound.pause();
-    dieSound.currentTime = 0;
-    dieSound.play();
+        playDie();
 }, 150);
 
-gameOver = true;
+triggerGameOver();
 }
 
     // Ceiling Collision
-   if (bird.y <= 0) {
+    if (bird.y <= 0) {
+        bird.y = 0;
 
-    bird.y = 0;
+        if (score > bestScore) {
+            bestScore = score;
+            localStorage.setItem("bestScore", bestScore.toString());
+            newRecord = true;
+        }
 
-    if (score > bestScore) {
-        bestScore = score;
+        playHit();
+        setTimeout(() => {
+            playDie();
+        }, 150);
+
+        triggerGameOver();
     }
 
-   hitSound.pause();
-hitSound.currentTime = 0;
-hitSound.play();
+     let baseSpeed = 3;
 
-setTimeout(() => {
-    dieSound.pause();
-    dieSound.currentTime = 0;
-    dieSound.play();
-}, 150);
+switch(currentDifficulty){
 
-gameOver = true;
+case "easy":
+    baseSpeed = 2.5;
+    break;
+
+case "normal":
+    baseSpeed = 3;
+    break;
+
+case "hard":
+    baseSpeed = 4;
+    break;
+
+case "insane":
+    baseSpeed = 5;
+    break;
+
 }
 
- const pipeSpeed = 3 + Math.floor(score / 10);
+if (levelUpTimer > 0) {
+    levelUpTimer--;
+
+    ctx.fillStyle = "#FFD700";
+    ctx.font = "30px Arial";
+    ctx.textAlign = "center";
+
+    ctx.fillText(
+        levelUpText,
+        canvas.width / 2,
+        120
+    );
+}
+
+const pipeSpeed = baseSpeed + Math.floor(score / 10);
 
 for (const pipe of pipes) {
     pipe.speed = pipeSpeed;
@@ -304,34 +572,46 @@ if (!pipe.passed && bird.x > pipe.x + pipe.width) {
     pipe.passed = true;
     score++;
 
-    scoreSound.pause();
-    scoreSound.currentTime = 0;
-    scoreSound.play();
+    statistics.totalPipes++;
+     saveStatistics(statistics);
 
-    if (score > bestScore) {
-        bestScore = score;
-    }
+const leveledUp = addXP(statistics, 2);
+
+statistics.coins += 1;
+
+if (leveledUp) {
+    levelUpText =
+        "LEVEL UP! LEVEL " +
+        statistics.level +
+        " (+1000 Coins)";
+    levelUpTimer = 180;
+}
+
+saveStatistics(statistics);
+
+    scorePopupTimer = 30;
+    onScore(score);
+    playScore();
+
+   
 }
       
 
        if (!gameOver && checkCollision(bird, pipe)) {
 
-    if (score > bestScore) {
-        bestScore = score;
-        localStorage.setItem("bestScore", bestScore.toString());
-    }
+  if (score > bestScore) {
+    bestScore = score;
+    localStorage.setItem("bestScore", bestScore.toString());
+    newRecord = true;
+}
 
-    hitSound.pause();
-    hitSound.currentTime = 0;
-    hitSound.play();
+    playHit();
 
 setTimeout(() => {
-    dieSound.pause();
-    dieSound.currentTime = 0;
-    dieSound.play();
+    playDie();
 }, 150);
 
-gameOver = true;
+triggerGameOver();
 }
     }
 
@@ -342,7 +622,7 @@ gameOver = true;
 
         pipes.shift();
 
-        const newPipe = new Pipe();
+        const newPipe = new Pipe(currentDifficulty);
 
         const lastPipe = pipes[pipes.length - 1];
 
@@ -360,60 +640,48 @@ gameOver = true;
 
     // ================= DRAW =================
 
-    // Pipes
     for (const pipe of pipes) {
         pipe.draw(ctx);
     }
-
-    // Bird
     bird.draw(ctx);
-
-    // Ground
     ground.draw(ctx);
+    drawHUD(ctx, canvas, score, bestScore, statistics, xpNeeded);
 
-    // Score
-    ctx.fillStyle = "white";
-    ctx.font = "32px Arial";
-    ctx.textAlign = "left";
-   ctx.fillText("Score: " + score, 20, 40);
-ctx.fillText("Best: " + bestScore, 20, 80);
+    if (settings.fpsCounter) {
+        fpsCounter.update();
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+        ctx.textAlign = "right";
+        ctx.fillText(`FPS: ${fpsCounter.getValue()}`, canvas.width - 20, 60);
+    }
+
+if (achievementTimer > 0) {
+    // decrement handled via achievements.decrementTimers()
+    drawAchievementPopup(ctx, canvas, achievementText);
+}
+
+// Medal popup
+if (medalTimer > 0) {
+    drawMedalPopup(ctx, canvas, medalText);
+}
+
+if (skinUnlockTimer > 0) {
+    drawSkinUnlockPopup(ctx, canvas, skinUnlockText);
+}
+
+    if (scorePopupTimer > 0) {
+    scorePopupTimer--;
+    drawScorePopup(ctx, bird);
+}
+
+    // decrement achievement/medal/skin timers
+    decrementTimers();
 
     requestAnimationFrame(gameLoop);
 }
 
 
-function resetGame(): void {
-
-    score = 0;
-    gameOver = false;
-    gameStarted = false;
-
-    bird.x = 120;
-    bird.y = 350;
-    bird.velocityY = 0;
-    bird.angle = 0;
-
-    ground.x = 0;
-    clouds.x = 0;
-
-    // Reset menu animation
-    menuTime = 0;
-    menuBirdY = 350;
-    bird.y = menuBirdY;
-
-    pipes.length = 0;
-
-    for (let i = 0; i < 3; i++) {
-
-        const pipe = new Pipe();
-        pipe.x = 480 + i * 250;
-        pipe.passed = false;
-
-        pipes.push(pipe);
-
-    }
-
-}
+// resetGame moved to src/reset.ts
 
 // Start the game loop
 gameLoop();
