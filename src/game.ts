@@ -1,0 +1,1 @@
+const shopUnlockRequirements = [0, 25, 50, 100];

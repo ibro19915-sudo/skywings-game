@@ -4,11 +4,13 @@ export interface InputHandlers {
 	onChangeSkinRight: () => void;
 	onChangeDifficultyPrev: () => void;
 	onChangeDifficultyNext: () => void;
+	onOpenShop: () => void;
 	onOpenSettings: () => void;
 	onSettingsKey: (key: string) => void;
 	onSpace: () => void;
 	onShowStatistics: () => void;
 	onHideStatistics: () => void;
+	
 }
 
 export function setupInput(handlers: InputHandlers): void {
@@ -42,6 +44,12 @@ export function setupInput(handlers: InputHandlers): void {
 			handlers.onShowStatistics();
 			return;
 		}
+
+		if (event.code === "KeyB") {
+            handlers.onOpenShop();
+         return;
+        }
+
 
 		if (event.code === "KeyM") {
 			handlers.onOpenSettings();

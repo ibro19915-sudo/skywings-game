@@ -4,8 +4,9 @@ import { Clouds } from "./clouds.js";
 import { Pipe } from "./pipe.js";
 import type { Difficulty } from "./difficulty.js";
 import { Statistics } from "./statistics.js";
+import { isSkinUnlocked, SkinType } from "./skins.js";
 
-
+const shopUnlockRequirements = [0, 50, 150, 300];
 
 
 
@@ -294,10 +295,11 @@ bird.draw(ctx);
 ctx.fillStyle = "white";
 ctx.font = "24px Arial";
 ctx.textAlign = "center";
+
 ctx.fillText(
     "Press B for Shop",
     canvas.width / 2,
-    bird.y + 90
+    500
 );
 
 ground.update();
@@ -444,5 +446,170 @@ export function drawScorePopup(ctx: CanvasRenderingContext2D, bird: Bird): void 
         "+1 ✨",
         bird.x + 100,
         bird.y - 20
+    );
+
+    
+}
+export function drawShop(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    statistics: Statistics,
+    selectedShopSkin: number
+): void {
+
+     ctx.fillStyle = "rgba(0,0,0,0.85)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const shopSkins = ["red", "blue", "gold", "diamond"];
+    const prices = [0, 250, 1000, 2500];
+    const requirements = [0, 50, 150, 300];
+
+    const skin = shopSkins[selectedShopSkin];
+    const price = prices[selectedShopSkin];
+    const requiredPipes = requirements[selectedShopSkin];
+
+    const owned =
+    isSkinUnlocked(skin as SkinType);
+
+    const unlocked =
+        statistics.totalPipes >= requiredPipes;
+    if (owned) {
+    ctx.fillStyle = "#00FF00";
+    ctx.fillText(
+        "OWNED",
+        canvas.width / 2,
+        300
+    );
+}
+else if (unlocked && statistics.coins >= price) {
+  ctx.font = "30px Arial";
+ctx.fillStyle = "#FFD700";
+ctx.strokeStyle = "black";
+ctx.lineWidth = 4;
+
+ctx.strokeText("UNLOCKED", canvas.width / 2, 300);
+ctx.fillText("UNLOCKED", canvas.width / 2, 300);
+
+ctx.font = "26px Arial";
+
+ctx.strokeText(
+    `Price: ${price} Coins`,
+    canvas.width / 2,
+    340
+);
+ctx.fillText(
+    `Price: ${price} Coins`,
+    canvas.width / 2,
+    340
+);
+
+ctx.strokeText(
+    "Press SPACE to Buy",
+    canvas.width / 2,
+    380
+);
+ctx.fillText(
+    "Press SPACE to Buy",
+    canvas.width / 2,
+    380
+);
+
+
+}
+else if (unlocked && statistics.coins < price) {
+    ctx.fillStyle = "yellow";
+    ctx.fillText(
+        "UNLOCKED",
+        canvas.width / 2,
+        300
+    );
+
+   ctx.fillStyle = "#FFD700";
+ctx.strokeStyle = "black";
+ctx.lineWidth = 4;
+
+ctx.strokeText(
+    `Need ${price} Coins`,
+    canvas.width / 2,
+    340
+);
+
+ctx.fillText(
+    `Need ${price} Coins`,
+    canvas.width / 2,
+    340
+);
+}
+else {
+   ctx.fillStyle = "#FF4444";
+   ctx.fillStyle = "#FF4444";
+ctx.font = "32px Arial";
+ctx.fillText(
+    "LOCKED",
+    canvas.width / 2,
+    300
+);
+
+ctx.fillStyle = "#FFD700";
+ctx.font = "26px Arial";
+ctx.strokeStyle = "black";
+ctx.lineWidth = 4;
+
+ctx.strokeText(
+    `Pass ${requiredPipes} Pipes`,
+    canvas.width / 2,
+    340
+);
+
+ctx.fillText(
+    `Pass ${requiredPipes} Pipes`,
+    canvas.width / 2,
+    340
+);
+}
+
+  
+
+    // Title
+    ctx.fillStyle = "#FFD700";
+    ctx.font = "50px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("SHOP", canvas.width / 2, 80);
+
+    // Coins
+    ctx.fillStyle = "white";
+    ctx.font = "28px Arial";
+    ctx.fillText(
+        `Coins: ${statistics.coins}`,
+        canvas.width / 2,
+        140
+    );
+
+    // Current skin
+    ctx.fillStyle = "#FFD700";
+    ctx.font = "40px Arial";
+    ctx.fillText(
+        skin.toUpperCase(),
+        canvas.width / 2,
+        240
+    );
+
+    ctx.font = "28px Arial";
+
+
+    // Controls
+    ctx.fillStyle = "white";
+    ctx.font = "22px Arial";
+
+    ctx.fillText(
+        "A / D = Change Skin",
+        canvas.width / 2,
+        canvas.height - 90
+    );
+
+    ctx.fillText(
+        "ESC = Back",
+        canvas.width / 2,
+        canvas.height - 50
     );
 }

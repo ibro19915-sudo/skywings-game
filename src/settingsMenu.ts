@@ -1,7 +1,13 @@
 import { type Difficulty } from "./difficulty.js";
 import type { Settings } from "./settings.js";
 
-export type SettingsMenuOption = "difficulty" | "soundEffects" | "fpsCounter" | "resetProgress" | "back";
+export type SettingsMenuOption =
+    "difficulty" |
+    "soundEffects" |
+    "music" |
+    "fpsCounter" |
+    "resetProgress" |
+    "back";
 
 export interface SettingsMenuState {
     selectedOption: SettingsMenuOption;
@@ -25,7 +31,10 @@ function formatDifficulty(value: Difficulty): string {
     return value.toUpperCase();
 }
 
-export function updateSettingsMenu(state: SettingsMenuState, key: string): SettingsMenuState {
+export function updateSettingsMenu(
+    state: SettingsMenuState,
+    key: string
+): SettingsMenuState {
     const next = { ...state };
 
     switch (key) {
@@ -34,18 +43,23 @@ export function updateSettingsMenu(state: SettingsMenuState, key: string): Setti
                 next.selectedOption = "back";
             } else if (next.selectedOption === "soundEffects") {
                 next.selectedOption = "difficulty";
-            } else if (next.selectedOption === "fpsCounter") {
+            } else if (next.selectedOption === "music") {
                 next.selectedOption = "soundEffects";
+            } else if (next.selectedOption === "fpsCounter") {
+                next.selectedOption = "music";
             } else if (next.selectedOption === "resetProgress") {
                 next.selectedOption = "fpsCounter";
             } else if (next.selectedOption === "back") {
                 next.selectedOption = "resetProgress";
             }
             break;
+
         case "ArrowDown":
             if (next.selectedOption === "difficulty") {
                 next.selectedOption = "soundEffects";
             } else if (next.selectedOption === "soundEffects") {
+                next.selectedOption = "music";
+            } else if (next.selectedOption === "music") {
                 next.selectedOption = "fpsCounter";
             } else if (next.selectedOption === "fpsCounter") {
                 next.selectedOption = "resetProgress";
@@ -55,28 +69,53 @@ export function updateSettingsMenu(state: SettingsMenuState, key: string): Setti
                 next.selectedOption = "difficulty";
             }
             break;
+
         case "ArrowLeft":
             if (next.selectedOption === "difficulty") {
-                const currentIndex = difficulties.indexOf(next.settings.difficulty);
-                const prevIndex = (currentIndex - 1 + difficulties.length) % difficulties.length;
-                next.settings.difficulty = difficulties[prevIndex];
+                const currentIndex = difficulties.indexOf(
+                    next.settings.difficulty
+                );
+                const prevIndex =
+                    (currentIndex - 1 + difficulties.length) %
+                    difficulties.length;
+
+                next.settings.difficulty =
+                    difficulties[prevIndex];
+
             } else if (next.selectedOption === "soundEffects") {
                 next.settings.soundEffects = false;
+
+            } else if (next.selectedOption === "music") {
+                next.settings.music = false;
+
             } else if (next.selectedOption === "fpsCounter") {
                 next.settings.fpsCounter = false;
             }
             break;
+
         case "ArrowRight":
             if (next.selectedOption === "difficulty") {
-                const currentIndex = difficulties.indexOf(next.settings.difficulty);
-                const nextIndex = (currentIndex + 1) % difficulties.length;
-                next.settings.difficulty = difficulties[nextIndex];
+                const currentIndex = difficulties.indexOf(
+                    next.settings.difficulty
+                );
+                const nextIndex =
+                    (currentIndex + 1) %
+                    difficulties.length;
+
+                next.settings.difficulty =
+                    difficulties[nextIndex];
+
             } else if (next.selectedOption === "soundEffects") {
                 next.settings.soundEffects = true;
+
+            } else if (next.selectedOption === "music") {
+                next.settings.music = true;
+
             } else if (next.selectedOption === "fpsCounter") {
                 next.settings.fpsCounter = true;
             }
             break;
+
         case "Enter":
             if (next.selectedOption === "back") {
                 next.selectedOption = "back";
@@ -117,6 +156,11 @@ export function drawSettingsMenu(
             value: formatOnOff(state.settings.soundEffects),
             key: "soundEffects" as const
         },
+        {
+    label: "Music",
+    value: formatOnOff(state.settings.music),
+    key: "music" as const
+},
         {
             label: "FPS Counter",
             value: formatOnOff(state.settings.fpsCounter),

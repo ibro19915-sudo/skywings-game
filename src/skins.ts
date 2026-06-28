@@ -22,6 +22,8 @@ export type SkinType =
 
     export function isSkinUnlocked(skin: SkinType): boolean {
 
+        
+
        if (skin === "red"){
         return true;
        }

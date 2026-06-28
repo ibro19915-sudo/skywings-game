@@ -12,9 +12,20 @@ import {
     SkinType
 } from "./skins.js"
 
-import { drawGameOver, drawPauseScreen, drawResumeCountdown, drawMenu, drawHUD, drawAchievementPopup, drawMedalPopup, drawSkinUnlockPopup, drawScorePopup } from "./ui.js";
-import { playWing, playScore, playHit, playDie, setAudioSettings } from "./audio.js";
-import { achievementText, achievementTimer, medalText, medalTimer, skinUnlockText, skinUnlockTimer, unlockedSkin, onScore, decrementTimers, resetAchievements } from "./achievements.js";
+import {
+    drawGameOver,
+    drawPauseScreen,
+    drawResumeCountdown,
+    drawMenu,
+    drawHUD,
+    drawAchievementPopup,
+    drawMedalPopup,
+    drawSkinUnlockPopup,
+    drawScorePopup,
+    drawShop
+} from "./ui.js";
+
+import { achievementText, achievementTimer, medalText, medalTimer, skinUnlockText, skinUnlockTimer, unlockedSkin, onScore, decrementTimers, resetAchievements, showSkinUnlock } from "./achievements.js";
 import { resetGame as resetGameInternal } from "./reset.js";
 import {
     loadStatistics,
@@ -34,32 +45,20 @@ import { addXP,xpNeeded } from "./xp.js";
 
 import { setupInput } from "./input.js";
 
+//music
+import {
+    playWing,
+    playScore,
+    playHit,
+    playDie,
+    setAudioSettings,
+    playMenuMusic,
+    stopMenuMusic
+} from "./audio.js";
 
 
 
-// Find the canvas on the webpage
-const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
 
-// Get the 2D drawing context
-const ctx = canvas.getContext("2d")!;
-
-// ground 
-const bird = new Bird();
-const ground = new Ground();
-const clouds = new Clouds();
-// Audio is handled in src/audio.ts via helper functions
-
-const bronzeMedal = new Image();
-bronzeMedal.src = "assets/images/bronze.png";
-
-const silverMedal = new Image();
-silverMedal.src = "assets/images/silver.png";
-
-const goldMedal = new Image();
-goldMedal.src = "assets/images/gold.png";
-
-const diamondMedal = new Image();
-diamondMedal.src = "assets/images/diamond.png";
 
 
 let score = 0;
@@ -78,8 +77,11 @@ const skins: SkinType[] = [
     "diamond"
 ];
 
-let currentSkinIndex =
-    skins.indexOf(getSelectedSkin());
+let currentSkinIndex = skins.indexOf(getSelectedSkin());
+
+if (currentSkinIndex === -1) {
+    currentSkinIndex = 0;
+}
 
 // achievement/medal/skin state moved to src/achievements.ts
 
@@ -90,6 +92,7 @@ let paused = false;
 let resumeCountdown = 3;
 let resumeCountdownRunning = false;
 // Menu animation
+const bird = new Bird();
 let menuBirdY = bird.y;
 let menuTime = 0;
 
@@ -100,6 +103,9 @@ let statisticsSaveAccumulator = 0;
 
 // showing statistics
 let showStatistics = false;
+let showShop = false;
+let selectedShopSkin = 0;
+const skinPrices = [0, 250, 1000, 2500];
 
 //difficulty
 let currentDifficulty: Difficulty = getDifficulty();
@@ -118,6 +124,13 @@ let statistics: Statistics = loadStatistics();
 // level up
 let levelUpText = "";
 let levelUpTimer = 0;
+
+//bonus
+let bonusText = "";
+let bonusTimer = 0;
+
+// music
+let menuMusicPlaying = false;
 
 const pipes: Pipe[] = [];
 
@@ -150,6 +163,16 @@ function onTogglePause(): void {
 }
 
 function onChangeSkinLeft(): void {
+    if (showShop) {
+    selectedShopSkin--;
+
+    if (selectedShopSkin < 0) {
+        selectedShopSkin = skins.length - 1;
+    }
+
+    return;
+}
+    
     if (!gameStarted && !countdownRunning && !showStatistics && !showSettingsMenu) {
         do {
             currentSkinIndex--;
@@ -164,6 +187,15 @@ function onChangeSkinLeft(): void {
 }
 
 function onChangeSkinRight(): void {
+   if (showShop) {
+    selectedShopSkin++;
+
+    if (selectedShopSkin >= skins.length) {
+        selectedShopSkin = 0;
+    }
+
+    return;
+}
     if (!gameStarted && !countdownRunning && !showStatistics && !showSettingsMenu) {
         do {
             currentSkinIndex++;
@@ -195,10 +227,47 @@ function onChangeDifficultyNext(): void {
     }
 }
 
+
 function onSpace(): void {
-    if (showSettingsMenu || showStatistics) {
+    if (showShop) {
+      
+        const shopSkins: SkinType[] = [
+    "red",
+    "blue",
+    "gold",
+    "diamond"
+];
+        const requirements = [0, 50, 150, 300];
+
+        const skin = shopSkins[selectedShopSkin];
+        const requiredPipes = requirements[selectedShopSkin];
+
+        const alreadyOwned = isSkinUnlocked(skin);
+
+        const canUnlock =
+            statistics.totalPipes >= requiredPipes;
+
+        if (!alreadyOwned && canUnlock) {
+         const price = skinPrices[selectedShopSkin];
+          if (statistics.coins >= price) {
+    statistics.coins -= price;
+
+    saveUnlockedSkin(skin);
+    saveSelectedSkin(skin);
+    currentSkinIndex = skins.indexOf(skin);
+    saveStatistics(statistics);
+    bird.loadSkin();
+    showShop = false;
+}
+        }
+
         return;
     }
+
+    if (showSettingsMenu || showStatistics) {
+    return;
+}
+   
 
     if (countdownRunning || showGo || resumeCountdownRunning) {
         return;
@@ -218,6 +287,9 @@ function onSpace(): void {
                 setTimeout(() => {
                     showGo = false;
                     gameStarted = true;
+                      stopMenuMusic();
+    menuMusicPlaying = false;
+
                     statistics.gamesPlayed++;
                     saveStatistics(statistics);
                     bird.y = menuBirdY;
@@ -231,6 +303,8 @@ function onSpace(): void {
         score = 0;
         gameOver = false;
         gameStarted = false;
+       
+
         newRecord = false;
         paused = false;
 
@@ -251,6 +325,12 @@ setupInput({
     onChangeSkinRight,
     onChangeDifficultyPrev,
     onChangeDifficultyNext,
+    onOpenShop: () => {
+    if (!gameStarted && !showStatistics && !showSettingsMenu) {
+        showShop = true;
+        selectedShopSkin = 0;
+    }
+},
     onOpenSettings: () => {
         if (!gameStarted && !countdownRunning && !showStatistics && !showSettingsMenu) {
             openSettingsMenu();
@@ -265,14 +345,18 @@ setupInput({
             showStatistics = true;
         }
     },
-    onHideStatistics: () => {
-        if (showSettingsMenu) {
-            showSettingsMenu = false;
-            settingsMenuState = null;
-        } else if (showStatistics) {
-            showStatistics = false;
-        }
+   onHideStatistics: () => {
+    if (showShop) {
+        showShop = false;
+    } else if (showSettingsMenu) {
+        showSettingsMenu = false;
+        settingsMenuState = null;
+    } else if (showStatistics) {
+        showStatistics = false;
     }
+},
+    
+    
 });
 
 function openSettingsMenu(): void {
@@ -299,18 +383,33 @@ function resetAllProgress(): void {
     localStorage.removeItem("skywings_achievements");
     localStorage.removeItem("skywings_medals");
 
+    // Remove pipe unlock progress too
+    localStorage.removeItem("bird_blue_unlocked");
+    localStorage.removeItem("bird_gold_unlocked");
+    localStorage.removeItem("bird_diamond_unlocked");
+
     localStorage.setItem("bestScore", "0");
+
     bestScore = 0;
     score = 0;
+
     statistics = loadStatistics();
     currentDifficulty = getDifficulty();
+
     settings = loadSettings();
     settings.difficulty = currentDifficulty;
     settings.soundEffects = true;
     settings.fpsCounter = false;
+
     saveSettings(settings);
     setAudioSettings(settings);
-    currentSkinIndex = skins.indexOf(getSelectedSkin());
+    stopMenuMusic();
+menuMusicPlaying = false;
+
+    // Equip red bird again
+    saveSelectedSkin("red");
+    currentSkinIndex = 0;
+    bird.loadSkin();
 }
 
 function handleSettingsKey(key: string): void {
@@ -365,6 +464,17 @@ function handleSettingsKey(key: string): void {
     setAudioSettings(settings);
     saveSettings(settings);
 
+    if (settings.music && !gameStarted && !menuMusicPlaying) {
+    playMenuMusic();
+    menuMusicPlaying = true;
+}
+
+if (!settings.music) {
+    stopMenuMusic();
+    menuMusicPlaying = false;
+}
+
+
     if (key === "Enter" && settingsMenuState.selectedOption === "back") {
         showSettingsMenu = false;
         settingsMenuState = null;
@@ -373,13 +483,87 @@ function handleSettingsKey(key: string): void {
 
 // unlockAchievement/unlockMedal moved to src/achievements.ts
 function triggerGameOver(): void {
-
     statistics.totalCrashes++;
     statistics.totalScore += score;
     saveStatistics(statistics);
 
     gameOver = true;
+
+    if (settings.music) {
+        playMenuMusic();
+        menuMusicPlaying = true;
+    }
 }
+
+
+
+
+
+// Find the canvas on the webpage
+const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
+
+// Get the 2D drawing context
+const ctx = canvas.getContext("2d")!;
+
+// ground 
+
+const ground = new Ground();
+const clouds = new Clouds();
+// Audio is handled in src/audio.ts via helper functions
+
+const bronzeMedal = new Image();
+bronzeMedal.src = "assets/images/bronze.png";
+
+const silverMedal = new Image();
+silverMedal.src = "assets/images/silver.png";
+
+const goldMedal = new Image();
+goldMedal.src = "assets/images/gold.png";
+
+const diamondMedal = new Image();
+diamondMedal.src = "assets/images/diamond.png";
+
+
+
+
+
+
+function unlockBirdByPipes(): void {
+  if (
+    statistics.totalPipes >= 50 &&
+    localStorage.getItem("bird_blue_unlocked") !== "true"
+) {
+    localStorage.setItem("bird_blue_unlocked", "true");
+    showSkinUnlock("BLUE");
+}
+
+    if (
+    statistics.totalPipes >= 150 &&
+    localStorage.getItem("bird_gold_unlocked") !== "true"
+) {
+    localStorage.setItem("bird_gold_unlocked", "true");
+    showSkinUnlock("GOLD");
+}
+
+if (
+    statistics.totalPipes >= 300 &&
+    localStorage.getItem("bird_diamond_unlocked") !== "true"
+) {
+    localStorage.setItem("bird_diamond_unlocked", "true");
+    showSkinUnlock("DIAMOND");
+}
+}
+
+
+
+
+
+// resetGame moved to src/reset.ts
+
+// Start the game loop
+
+
+   
 
 
 function gameLoop(): void {
@@ -441,6 +625,16 @@ if (showStatistics) {
     requestAnimationFrame(gameLoop);
     return;
 }
+if (showShop) {
+    drawShop(
+        ctx,
+        canvas,
+        statistics,
+        selectedShopSkin
+    );
+    requestAnimationFrame(gameLoop);
+    return;
+}
 
 if (showSettingsMenu && settingsMenuState) {
     drawSettingsMenu(ctx, canvas, settingsMenuState, showResetConfirmation, resetConfirmationChoice);
@@ -456,9 +650,12 @@ if (showSettingsMenu && settingsMenuState) {
 }
 
     // ================= MENU =================
+   
+
 
     if (!gameStarted) {
         menuTime += 0.05;
+        menuBirdY = 350 + Math.sin(menuTime) * 15;
         drawMenu(ctx, canvas, clouds, bird, ground, menuBirdY, menuTime, countdownRunning, countdown, showGo, currentSkinIndex, skins, score, currentDifficulty);
         requestAnimationFrame(gameLoop);
         return;
@@ -546,13 +743,27 @@ if (levelUpTimer > 0) {
     levelUpTimer--;
 
     ctx.fillStyle = "#FFD700";
-    ctx.font = "30px Arial";
+    ctx.font = "24px Arial";
     ctx.textAlign = "center";
 
     ctx.fillText(
         levelUpText,
         canvas.width / 2,
-        120
+        80
+    );
+}
+
+if (bonusTimer > 0) {
+    bonusTimer--;
+
+    ctx.fillStyle = "#00FF00";
+    ctx.font = "20px Arial";
+    ctx.textAlign = "center";
+
+    ctx.fillText(
+        bonusText,
+        canvas.width / 2,
+        110
     );
 }
 
@@ -572,19 +783,21 @@ if (!pipe.passed && bird.x > pipe.x + pipe.width) {
     pipe.passed = true;
     score++;
 
-    statistics.totalPipes++;
-     saveStatistics(statistics);
+   statistics.totalPipes++;
+unlockBirdByPipes();
 
 const leveledUp = addXP(statistics, 2);
 
 statistics.coins += 1;
 
 if (leveledUp) {
-    levelUpText =
-        "LEVEL UP! LEVEL " +
-        statistics.level +
-        " (+1000 Coins)";
+    levelUpText = `LEVEL ${statistics.level}!`;
     levelUpTimer = 180;
+
+    statistics.coins += 1000;
+
+    bonusText = "+1000 COINS BONUS!";
+    bonusTimer = 180;
 }
 
 saveStatistics(statistics);
@@ -680,7 +893,10 @@ if (skinUnlockTimer > 0) {
     requestAnimationFrame(gameLoop);
 }
 
-
+if (settings.music) {
+    playMenuMusic();
+    menuMusicPlaying = true;
+}
 // resetGame moved to src/reset.ts
 
 // Start the game loop

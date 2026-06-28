@@ -3,6 +3,7 @@ import { getDifficulty, saveDifficulty, type Difficulty } from "./difficulty.js"
 export interface Settings {
     difficulty: Difficulty;
     soundEffects: boolean;
+    music: boolean;
     fpsCounter: boolean;
 }
 
@@ -16,10 +17,10 @@ export function loadSettings(): Settings {
     const raw = localStorage.getItem(SETTINGS_KEY);
 
     if (!raw) {
-        const defaultDifficulty = getDifficulty();
         return {
-            difficulty: defaultDifficulty,
+            difficulty: getDifficulty(),
             soundEffects: true,
+            music: true,
             fpsCounter: false
         };
     }
@@ -28,25 +29,34 @@ export function loadSettings(): Settings {
         const parsed = JSON.parse(raw) as Partial<Settings>;
 
         return {
-            difficulty: isDifficulty(parsed.difficulty ?? "") ? parsed.difficulty! : getDifficulty(),
+            difficulty: isDifficulty(parsed.difficulty ?? "")
+                ? parsed.difficulty!
+                : getDifficulty(),
             soundEffects: parsed.soundEffects ?? true,
+            music: parsed.music ?? true,
             fpsCounter: parsed.fpsCounter ?? false
         };
     } catch {
         return {
             difficulty: getDifficulty(),
             soundEffects: true,
+            music: true,
             fpsCounter: false
         };
     }
 }
 
+
+
 export function saveSettings(settings: Settings): void {
-    const normalized: Settings = {
-        difficulty: isDifficulty(settings.difficulty) ? settings.difficulty : getDifficulty(),
-        soundEffects: settings.soundEffects,
-        fpsCounter: settings.fpsCounter
-    };
+  const normalized: Settings = {
+    difficulty: isDifficulty(settings.difficulty)
+        ? settings.difficulty
+        : getDifficulty(),
+    soundEffects: settings.soundEffects,
+    music: settings.music,
+    fpsCounter: settings.fpsCounter
+};
 
     saveDifficulty(normalized.difficulty);
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(normalized));

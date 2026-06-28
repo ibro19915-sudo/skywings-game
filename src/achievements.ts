@@ -11,6 +11,11 @@ export let skinUnlockTimer = 0;
 
 export let unlockedSkin = 0;
 
+export function showSkinUnlock(text: string): void {
+    skinUnlockText = text;
+    skinUnlockTimer = 180;
+}
+
 const ACHIEVEMENTS_KEY = "skywings_achievements";
 const MEDALS_KEY = "skywings_medals";
 
@@ -66,23 +71,13 @@ export function unlockMedalPersistent(id: string, text: string): void {
 
 export function onScore(score: number): void {
     // handle skin unlocks (unchanged behavior)
-    if (score >= 10 && !isSkinUnlocked("blue")) {
-        saveUnlockedSkin("blue");
-        skinUnlockText = "🐦 BLUE BIRD UNLOCKED!";
-        skinUnlockTimer = 180;
-    }
+   
 
-    if (score >= 25 && !isSkinUnlocked("gold")) {
-        saveUnlockedSkin("gold");
-        skinUnlockText = "🥇 GOLD BIRD UNLOCKED!";
-        skinUnlockTimer = 180;
-    }
+   
+    
 
-    if (score >= 50 && !isSkinUnlocked("diamond")) {
-        saveUnlockedSkin("diamond");
-        skinUnlockText = "💎 DIAMOND BIRD UNLOCKED!";
-        skinUnlockTimer = 180;
-    }
+   
+    
 
     // achievements (only show popup if newly unlocked now)
     if (score === 5) {
