@@ -6,79 +6,89 @@ export class Pipe {
     topHeight: number;
     gap: number;
     width: number;
+  
     speed: number;
     passed: boolean;
     image: HTMLImageElement;
+    playableHeight: number;
 
-    constructor(difficulty: Difficulty = "normal") {
-        this.x = 480;
-        this.topHeight = 200;
 
-        switch (difficulty) {
-            case "easy":
-                this.gap = 200;
-                break;
-            case "normal":
-                this.gap = 170;
-                break;
-            case "hard":
-                this.gap = 145;
-                break;
-            case "insane":
-                this.gap = 120;
-                break;
-        }
+   constructor(difficulty: Difficulty = "normal") {
+    this.x = 480;
+    this.topHeight = 200;
 
-        this.width = 70;
-        this.speed = 3;
-        this.passed = false;
-        this.image = new Image();
-        this.image.src = "assets/images/pipe.png";
+    switch (difficulty) {
+        case "easy":
+            this.gap = 200;
+            break;
+        case "normal":
+            this.gap = 170;
+            break;
+        case "hard":
+            this.gap = 145;
+            break;
+        case "insane":
+            this.gap = 120;
+            break;
     }
 
-    update(): void {
-        this.x -= this.speed;
-    }
+    this.width = 70;
+   
+    this.speed = 3;
+    this.passed = false;
+    this.playableHeight = 640;
 
-    draw(ctx: CanvasRenderingContext2D): void {
+    this.image = new Image();
+    this.image.src = "assets/images/pipe.png";
+}
+update(): void {
+    this.x -= this.speed;
+}
+   
 
-    // Crop the useful part of the image
-    const cropX = 95;
-    const cropY = 20;
-    const cropWidth = 835;
-    const cropHeight = 1485;
+  draw(ctx: CanvasRenderingContext2D): void {
 
-    // Top pipe
-    ctx.save();
+    // Manually crop the sprite
+    // Adjust these 4 numbers until the gap disappears
+    const cropX = 120;
+    const cropY = 85;
+    const cropWidth = 780;
+    const cropHeight = 1340;
 
-    ctx.translate(this.x + this.width / 2, this.topHeight / 2);
-    ctx.rotate(Math.PI);
+  // ---------- TOP PIPE ----------
+const topPipeY = 0;
+
+ctx.save();
+ctx.translate(this.x + this.width / 2, topPipeY + this.topHeight / 2);
+ctx.rotate(Math.PI);
+
+ctx.drawImage(
+    this.image,
+    cropX,
+    cropY,
+    cropWidth,
+    cropHeight,
+    -this.width / 2,
+    -this.topHeight / 2,
+    this.width,
+    this.topHeight
+);
+
+ctx.restore(); 
+    // ---------- BOTTOM PIPE ----------
+    const bottomPipeY = this.topHeight + this.gap;
+    const bottomHeight = this.playableHeight - bottomPipeY + 120;
 
     ctx.drawImage(
-        this.image,
-        cropX,
-        cropY,
-        cropWidth,
-        cropHeight,
-        -this.width / 2,
-        -this.topHeight / 2,
-        this.width,
-        this.topHeight
-    );
-
-    ctx.restore();
-
-    // Bottom pipe
-    ctx.drawImage(
-        this.image,
-        cropX,
-        cropY,
-        cropWidth,
-        cropHeight,
-        this.x,
-        this.topHeight + this.gap,
-        this.width,
-        640 - (this.topHeight + this.gap)
-    );
-    }
+    this.image,
+    cropX,
+    cropY,
+    cropWidth,
+    cropHeight,
+    this.x - (this.width - this.width) / 2, // equals this.x
+    bottomPipeY,
+    this.width,
+    bottomHeight
+);
+}
 }

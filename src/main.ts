@@ -118,6 +118,13 @@ let showResetConfirmation = false;
 let resetConfirmationChoice: "yes" | "no" = "yes";
 let fpsCounter = new FPSCounter();
 
+function ensureMenuMusic(): void {
+    if (settings.music && !menuMusicPlaying && !gameStarted) {
+        playMenuMusic();
+        menuMusicPlaying = true;
+    }
+}
+
 // stattiscs
 let statistics: Statistics = loadStatistics();
 
@@ -131,6 +138,17 @@ let bonusTimer = 0;
 
 // music
 let menuMusicPlaying = false;
+let audioUnlocked = false;
+
+const isTouchDevice =
+    "ontouchstart" in window || navigator.maxTouchPoints > 0;
+const isPhone =
+    /iPhone|Android/i.test(navigator.userAgent) &&
+    !/iPad/i.test(navigator.userAgent);
+const isIPhone = /iPhone/i.test(navigator.userAgent);
+const isIPad =
+    /iPad/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 const pipes: Pipe[] = [];
 
@@ -268,6 +286,9 @@ function onSpace(): void {
     return;
 }
    
+    if (!gameStarted && !countdownRunning && !showStatistics && !showSettingsMenu && !showShop) {
+        ensureMenuMusic();
+    }
 
     if (countdownRunning || showGo || resumeCountdownRunning) {
         return;
@@ -283,12 +304,12 @@ function onSpace(): void {
                 clearInterval(timer);
                 countdownRunning = false;
                 showGo = true;
+                stopMenuMusic();
+                menuMusicPlaying = false;
 
                 setTimeout(() => {
                     showGo = false;
                     gameStarted = true;
-                      stopMenuMusic();
-    menuMusicPlaying = false;
 
                     statistics.gamesPlayed++;
                     saveStatistics(statistics);
@@ -312,6 +333,11 @@ function onSpace(): void {
         menuBirdY = 350;
 
         resetGameInternal(bird, ground, clouds, pipes, Pipe, statistics);
+
+        if (settings.music && !menuMusicPlaying) {
+            playMenuMusic();
+            menuMusicPlaying = true;
+        }
 
     } else {
         bird.jump();
@@ -465,15 +491,19 @@ function handleSettingsKey(key: string): void {
     saveSettings(settings);
 
     if (settings.music && !gameStarted && !menuMusicPlaying) {
-    playMenuMusic();
-    menuMusicPlaying = true;
-}
+        playMenuMusic();
+        menuMusicPlaying = true;
+    }
 
-if (!settings.music) {
-    stopMenuMusic();
-    menuMusicPlaying = false;
-}
+    if (!settings.music) {
+        stopMenuMusic();
+        menuMusicPlaying = false;
+    }
 
+    if (settings.music && !menuMusicPlaying) {
+        playMenuMusic();
+        menuMusicPlaying = true;
+    }
 
     if (key === "Enter" && settingsMenuState.selectedOption === "back") {
         showSettingsMenu = false;
@@ -502,13 +532,333 @@ function triggerGameOver(): void {
 // Find the canvas on the webpage
 const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
 
+function resizeCanvas(): void {
+    if (isPhone) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
+    }
+
+    if (ground) {
+        ground.width = canvas.width;
+        ground.height = Math.max(60, Math.round(canvas.height * 0.09));
+        ground.y = canvas.height - ground.height;
+    }
+}
+
+window.addEventListener("resize", () => {
+    if (isPhone) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+});
+window.addEventListener("orientationchange", resizeCanvas);
+
+function getCanvasTouchCoordinates(clientX: number, clientY: number): { x: number; y: number } {
+    const rect = canvas.getBoundingClientRect();
+    const width = rect.width || canvas.width;
+    const height = rect.height || canvas.height;
+
+    return {
+        x: (clientX - rect.left) * (canvas.width / width),
+        y: (clientY - rect.top) * (canvas.height / height),
+    };
+}
+
+let touchStartX = 0;
+let touchStartY = 0;
+let touchStartInDifficultyZone = false;
+
+canvas.addEventListener("touchstart", (event) => {
+    event.preventDefault();
+
+    if (!audioUnlocked) {
+        audioUnlocked = true;
+
+        if (settings.music && !menuMusicPlaying) {
+            playMenuMusic();
+            menuMusicPlaying = true;
+        }
+    }
+
+    if (!isTouchDevice) {
+        return;
+    }
+
+    const touch = event.touches[0];
+    const { x, y } = getCanvasTouchCoordinates(touch.clientX, touch.clientY);
+
+    touchStartX = x;
+    touchStartY = y;
+    touchStartInDifficultyZone = false;
+
+    const isLeftEdge = x < canvas.width * 0.2;
+    const isRightEdge = x > canvas.width * 0.8;
+    const isTopLeftCorner = x < canvas.width * 0.25 && y < canvas.height * 0.2;
+    const isTopRightCorner = x > canvas.width * 0.75 && y < canvas.height * 0.2;
+    const isBottomLeftCorner = x < canvas.width * 0.25 && y > canvas.height * 0.8;
+    const isBottomCenter = x >= canvas.width * 0.25 && x <= canvas.width * 0.75 && y > canvas.height * 0.8;
+    const isCenterArea = x >= canvas.width * 0.25 && x <= canvas.width * 0.75;
+    const difficultyTextY = canvas.height * 0.38;
+    const difficultyTextBand = canvas.height * 0.06;
+    const isDifficultyZone =
+        isIPhone &&
+        !gameStarted &&
+        !countdownRunning &&
+        !showStatistics &&
+        !showSettingsMenu &&
+        !showShop &&
+        y >= difficultyTextY - difficultyTextBand &&
+        y <= difficultyTextY + difficultyTextBand &&
+        x >= canvas.width * 0.2 &&
+        x <= canvas.width * 0.8;
+    const isIPadDifficultyArea =
+        isIPad &&
+        !gameStarted &&
+        !countdownRunning &&
+        !showStatistics &&
+        !showSettingsMenu &&
+        !showShop &&
+        x > canvas.width * 0.25 &&
+        x < canvas.width * 0.75 &&
+        y > 300 &&
+        y < 380;
+
+    if (isDifficultyZone) {
+        touchStartInDifficultyZone = true;
+        if (x < canvas.width / 2) {
+            onChangeDifficultyPrev();
+        } else {
+            onChangeDifficultyNext();
+        }
+        return;
+    }
+
+    if (isIPadDifficultyArea) {
+        onChangeDifficultyNext();
+        return;
+    }
+
+    if (showSettingsMenu && settingsMenuState) {
+        if (isBottomLeftCorner) {
+            showSettingsMenu = false;
+            settingsMenuState = null;
+            showResetConfirmation = false;
+            return;
+        }
+
+        const optionRowHeight = 54;
+        const optionStartY = 180;
+        const optionIndex = Math.floor((y - optionStartY + optionRowHeight / 2) / optionRowHeight);
+
+        if (showResetConfirmation) {
+            if (x < canvas.width / 2) {
+                resetConfirmationChoice = "yes";
+                resetAllProgress();
+                showSettingsMenu = false;
+                settingsMenuState = null;
+                showResetConfirmation = false;
+            } else {
+                resetConfirmationChoice = "no";
+                showResetConfirmation = false;
+            }
+            return;
+        }
+
+        if (optionIndex === 0) {
+            const currentIndex = difficulties.indexOf(settingsMenuState.settings.difficulty);
+            const nextIndex = (currentIndex + 1) % difficulties.length;
+            settingsMenuState.settings.difficulty = difficulties[nextIndex];
+            settings = settingsMenuState.settings;
+            currentDifficulty = settings.difficulty;
+            saveSettings(settings);
+            setAudioSettings(settings);
+            return;
+        }
+
+        if (optionIndex === 1) {
+            settingsMenuState.settings.soundEffects = !settingsMenuState.settings.soundEffects;
+            settings = settingsMenuState.settings;
+            saveSettings(settings);
+            setAudioSettings(settings);
+            if (settings.music && !gameStarted && !menuMusicPlaying) {
+                playMenuMusic();
+                menuMusicPlaying = true;
+            }
+            return;
+        }
+
+        if (optionIndex === 2) {
+            settingsMenuState.settings.music = !settingsMenuState.settings.music;
+            settings = settingsMenuState.settings;
+            saveSettings(settings);
+            setAudioSettings(settings);
+            if (settings.music && !gameStarted && !menuMusicPlaying) {
+                playMenuMusic();
+                menuMusicPlaying = true;
+            }
+            if (!settings.music) {
+                stopMenuMusic();
+                menuMusicPlaying = false;
+            }
+            return;
+        }
+
+        if (optionIndex === 3) {
+            settingsMenuState.settings.fpsCounter = !settingsMenuState.settings.fpsCounter;
+            settings = settingsMenuState.settings;
+            saveSettings(settings);
+            return;
+        }
+
+        if (optionIndex === 4) {
+            showResetConfirmation = true;
+            resetConfirmationChoice = "yes";
+            return;
+        }
+
+        if (optionIndex === 5) {
+            showSettingsMenu = false;
+            settingsMenuState = null;
+            return;
+        }
+
+        return;
+    }
+
+    if (showStatistics) {
+        if (isBottomLeftCorner) {
+            showStatistics = false;
+        }
+        return;
+    }
+
+    if (showShop) {
+        if (isBottomLeftCorner) {
+            showShop = false;
+            return;
+        }
+
+        if (isLeftEdge) {
+            onChangeSkinLeft();
+            return;
+        }
+
+        if (isRightEdge) {
+            onChangeSkinRight();
+            return;
+        }
+
+        if (isCenterArea) {
+            onSpace();
+            return;
+        }
+
+        return;
+    }
+
+    if (gameOver) {
+        onSpace();
+        return;
+    }
+
+    if (gameStarted && paused && !gameOver) {
+        onTogglePause();
+        return;
+    }
+
+    if (gameStarted && !paused && !gameOver && isTopRightCorner) {
+        onTogglePause();
+        return;
+    }
+
+    if (!gameStarted && !countdownRunning && !showStatistics && !showSettingsMenu) {
+        if (isTopLeftCorner) {
+            showStatistics = true;
+            return;
+        }
+
+        if (isTopRightCorner) {
+            openSettingsMenu();
+            return;
+        }
+
+        if (isBottomCenter) {
+            showShop = true;
+            selectedShopSkin = 0;
+            return;
+        }
+
+        if (isIPhone) {
+            if (isLeftEdge) {
+                onChangeSkinLeft();
+                return;
+            }
+
+            if (isRightEdge) {
+                onChangeSkinRight();
+                return;
+            }
+
+            if (isCenterArea) {
+                onSpace();
+                return;
+            }
+
+            return;
+        }
+
+        if (isLeftEdge) {
+            onChangeSkinLeft();
+            return;
+        }
+
+        if (isRightEdge) {
+            onChangeSkinRight();
+            return;
+        }
+
+        onSpace();
+        return;
+    }
+
+    if (gameStarted && !paused && !gameOver) {
+        onSpace();
+    }
+});
+
+canvas.addEventListener("touchend", (event) => {
+    if (!isTouchDevice || !isIPhone || !touchStartInDifficultyZone) {
+        return;
+    }
+
+    event.preventDefault();
+
+    const touch = event.changedTouches[0];
+    const { x, y } = getCanvasTouchCoordinates(touch.clientX, touch.clientY);
+    const deltaX = x - touchStartX;
+    const deltaY = y - touchStartY;
+
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+        if (deltaX < 0) {
+            onChangeDifficultyNext();
+        } else {
+            onChangeDifficultyPrev();
+        }
+    }
+});
+
 // Get the 2D drawing context
 const ctx = canvas.getContext("2d")!;
 
 // ground 
 
-const ground = new Ground();
-const clouds = new Clouds();
+let ground: Ground;
+let clouds: Clouds;
+ground = new Ground();
+clouds = new Clouds();
+resizeCanvas();
 // Audio is handled in src/audio.ts via helper functions
 
 const bronzeMedal = new Image();
@@ -679,10 +1029,12 @@ clouds.draw(ctx);
     
     bird.update();
 
-    // Ground Collision
-    if (bird.y + bird.height >= canvas.height) {
+    const playableHeight = Math.max(240, canvas.height - ground.height);
 
-    bird.y = canvas.height - bird.height;
+    // Ground Collision
+    if (bird.y + bird.height >= ground.y) {
+
+    bird.y = ground.y - bird.height;
 
    if (score > bestScore){
     bestScore = score;
@@ -836,6 +1188,7 @@ triggerGameOver();
         pipes.shift();
 
         const newPipe = new Pipe(currentDifficulty);
+        newPipe.playableHeight = playableHeight;
 
         const lastPipe = pipes[pipes.length - 1];
 
@@ -843,10 +1196,11 @@ triggerGameOver();
         newPipe.passed = false;
 
         const minHeight = 80;
-        const maxHeight = 280;
+        const maxHeight = Math.max(minHeight + 1, playableHeight - newPipe.gap - 70);
 
         newPipe.topHeight =
             minHeight + Math.random() * (maxHeight - minHeight);
+        newPipe.topHeight = Math.min(newPipe.topHeight, playableHeight - newPipe.gap - 70);
 
         pipes.push(newPipe);
     }
@@ -893,10 +1247,6 @@ if (skinUnlockTimer > 0) {
     requestAnimationFrame(gameLoop);
 }
 
-if (settings.music) {
-    playMenuMusic();
-    menuMusicPlaying = true;
-}
 // resetGame moved to src/reset.ts
 
 // Start the game loop

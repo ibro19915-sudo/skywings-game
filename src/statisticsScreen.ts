@@ -16,6 +16,8 @@ export function drawStatisticsScreen(
     ctx.fillRect(0,0, canvas.width, canvas.height);
 
     ctx.fillStyle = "white";
+    const isTouchDevice =
+    "ontouchstart" in window || navigator.maxTouchPoints > 0;
     ctx.textAlign = "center";
 
     ctx.font = "48px Arial"
@@ -76,9 +78,19 @@ ctx.fillText(
     y
 );
 
+
+
+   if (isTouchDevice) {
+    ctx.fillText(
+        "Touch bottom-left to return",
+        canvas.width / 2,
+        canvas.height - 40
+    );
+} else {
     ctx.fillText(
         "Press ESC to Return",
         canvas.width / 2,
         canvas.height - 40
     );
+}
 }

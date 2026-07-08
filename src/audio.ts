@@ -22,6 +22,12 @@ export function playMenuMusic(): void {
     void menuMusic.play();
 }
 
+export function resumeMenuMusic(): void {
+    if (!musicEnabled) return;
+    if (!menuMusic.paused) return;
+    void menuMusic.play();
+}
+
 export function stopMenuMusic(): void {
     menuMusic.pause();
 
@@ -45,9 +51,11 @@ function playSound(audio: HTMLAudioElement): void {
         return;
     }
 
-    audio.pause();
     audio.currentTime = 0;
-    void audio.play();
+
+    audio.play().catch(() => {
+        // Ignore playback errors
+    });
 }
 
 export function playWing(): void {

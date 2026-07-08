@@ -14,6 +14,9 @@ export interface InputHandlers {
 }
 
 export function setupInput(handlers: InputHandlers): void {
+	const isTouchDevice =
+		"ontouchstart" in window || navigator.maxTouchPoints > 0;
+
 	document.addEventListener("keydown", (event) => {
 		if (event.code === "KeyP") {
 			handlers.onTogglePause();
@@ -30,12 +33,12 @@ export function setupInput(handlers: InputHandlers): void {
 			return;
 		}
 
-		if (event.code === "KeyQ") {
+		if (event.code === "KeyQ" && !isTouchDevice) {
 			handlers.onChangeDifficultyPrev();
 			return;
 		}
 
-		if (event.code === "KeyE") {
+		if (event.code === "KeyE" && !isTouchDevice) {
 			handlers.onChangeDifficultyNext();
 			return;
 		}

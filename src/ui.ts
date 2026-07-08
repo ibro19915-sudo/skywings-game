@@ -8,7 +8,23 @@ import { isSkinUnlocked, SkinType } from "./skins.js";
 
 const shopUnlockRequirements = [0, 50, 150, 300];
 
+const IS_TOUCH =
+    "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
+const IS_IPHONE =
+    /iPhone/i.test(navigator.userAgent);
+
+const IS_IPAD =
+    /iPad/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" &&
+     navigator.maxTouchPoints > 1);
+
+function getSkyColor(score: number): string {
+    if (score >= 30) return "#FFA500";
+    if (score >= 20) return "#191970";
+    if (score >= 10) return "#FF7F50";
+    return "#87CEEB";
+}
 
 export function drawGameOver(
     ctx: CanvasRenderingContext2D,
@@ -122,7 +138,7 @@ export function drawGameOver(
 
     ctx.font = "20px Arial";
     ctx.fillText(
-        "Press SPACE to Restart",
+        IS_TOUCH ? "Touch to Restart" : "Press SPACE to Restart",
         canvas.width / 2,
         560
     );
@@ -146,7 +162,7 @@ export function drawPauseScreen(ctx: CanvasRenderingContext2D, canvas: HTMLCanva
     ctx.font = "24px Arial";
 
     ctx.fillText(
-        "Press P to Continue",
+        IS_TOUCH ? "Touch to Continue" : "Press P to Continue",
         canvas.width / 2,
         canvas.height / 2 + 60
     );
@@ -253,57 +269,57 @@ export function drawMenu(
         return;
     }
 
+    bird.y = menuBirdY;
+    bird.draw(ctx);
+    ground.update();
+    ground.draw(ctx);
+
     ctx.fillStyle = "white";
-ctx.font = "56px Arial";
-ctx.textAlign = "center";
-ctx.fillText("SKY WINGS", canvas.width / 2, 70);
+    ctx.font = "56px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("SKY WINGS", canvas.width / 2, 70);
 
     ctx.font = "24px Arial";
     ctx.fillText(
         "Current Skin:" +
         skins[currentSkinIndex].toUpperCase(),
         canvas.width / 2,
-        165
+        205
     );
 
     ctx.fillText(
         "Difficulty: " + currentDifficulty.toUpperCase(),
         canvas.width / 2,
-        200
+        245
     );
 
-    ctx.fillText(
-        "Q / E = Change Difficulty",
-        canvas.width / 2,
-        235
-    );
+    if (!IS_TOUCH) {
+        ctx.fillText(
+            "Q / E = Change Difficulty",
+            canvas.width / 2,
+            285
+        );
+    }
 
-    ctx.fillText("Press SPACE to Start", canvas.width / 2, 270);
-    ctx.fillText(
-        "Press S for Statistics",
-        canvas.width / 2,
-        305
-    );
-    ctx.fillText(
-        "Press M for Settings",
-        canvas.width / 2,
-        340
-    );
-    bird.y = menuBirdY + Math.sin(menuTime) * 8;
-bird.draw(ctx);
+    if (IS_TOUCH) {
+        ctx.fillText("Touch to Start", canvas.width / 2, 310);
+        ctx.fillText("Touch Top Left for Statistics", canvas.width / 2, 340);
+        ctx.fillText("Touch Top Right for Settings", canvas.width / 2, 470);
+        ctx.fillText(
+            "Touch Left/Right Edge to Change Skin",
+            canvas.width / 2,
+            510
+        );
+        ctx.fillText("Touch Bottom Center for Shop", canvas.width / 2, 550);
+    } else {
+        ctx.fillText("Press SPACE to Start", canvas.width / 2, 320);
+        ctx.fillText("Press S for Statistics", canvas.width / 2, 350);
+        ctx.fillText("Press M for Settings", canvas.width / 2, 460);
+        ctx.fillText("Press B for Shop", canvas.width / 2, 500);
+    }
 
-ctx.fillStyle = "white";
-ctx.font = "24px Arial";
-ctx.textAlign = "center";
-
-ctx.fillText(
-    "Press B for Shop",
-    canvas.width / 2,
-    500
-);
-
-ground.update();
-ground.draw(ctx);
+    ground.update();
+    ground.draw(ctx);
 }
 
 
@@ -357,7 +373,7 @@ export function drawHUD(
     ctx.font = "18px Arial";
 
     ctx.fillText(
-        "P = Pause",
+        IS_TOUCH ? "Touch to Pause" : "P = Pause",
         canvas.width - 20,
         30
     );
@@ -601,15 +617,41 @@ ctx.fillText(
     ctx.fillStyle = "white";
     ctx.font = "22px Arial";
 
-    ctx.fillText(
-        "A / D = Change Skin",
-        canvas.width / 2,
-        canvas.height - 90
-    );
+    if (IS_TOUCH) {
+        ctx.fillText(
+            "Touch left/right sides to change skin",
+            canvas.width / 2,
+            canvas.height - 110
+        );
 
-    ctx.fillText(
-        "ESC = Back",
-        canvas.width / 2,
-        canvas.height - 50
-    );
+        ctx.fillText(
+            "Touch center to buy/select skin",
+            canvas.width / 2,
+            canvas.height - 80
+        );
+
+        ctx.fillText(
+            "Touch bottom-left to return",
+            canvas.width / 2,
+            canvas.height - 50
+        );
+    } else {
+        ctx.fillText(
+            "A / D = Change Skin",
+            canvas.width / 2,
+            canvas.height - 90
+        );
+
+        ctx.fillText(
+            "SPACE = Buy/Select",
+            canvas.width / 2,
+            canvas.height - 60
+        );
+
+        ctx.fillText(
+            "ESC = Back",
+            canvas.width / 2,
+            canvas.height - 30
+        );
+    }
 }

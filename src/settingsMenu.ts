@@ -139,6 +139,8 @@ export function drawSettingsMenu(
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
     ctx.font = "48px Arial";
+    const isTouchDevice =
+    "ontouchstart" in window || navigator.maxTouchPoints > 0;
     ctx.fillText("SETTINGS", canvas.width / 2, 100);
 
     ctx.font = "28px Arial";
@@ -188,15 +190,31 @@ export function drawSettingsMenu(
     if (showResetConfirmation) {
         ctx.fillStyle = "#fbbf24";
         ctx.font = "26px Arial";
-        ctx.fillText("Are you sure?", canvas.width / 2, 430);
+        ctx.fillText("Are you sure?", canvas.width / 2, 500);
 
         const yesSelected = resetConfirmationChoice === "yes";
         const noSelected = resetConfirmationChoice === "no";
 
         ctx.fillStyle = yesSelected ? "#ffffff" : "#888888";
-        ctx.fillText("YES", canvas.width / 2 - 70, 465);
+        ctx.fillText("YES", canvas.width / 2 - 70, 550);
 
         ctx.fillStyle = noSelected ? "#ffffff" : "#888888";
-        ctx.fillText("NO", canvas.width / 2 + 70, 465);
+        ctx.fillText("NO", canvas.width / 2 + 70, 550);
     }
+ ctx.fillStyle = "white";
+ctx.font = "20px Arial";
+
+if (isTouchDevice) {
+    ctx.fillText(
+       "Touch an option • Touch bottom-left to go back" ,
+        canvas.width / 2,
+        canvas.height - 30
+    );
+} else {
+    ctx.fillText(
+        "Arrow Keys + Enter • Press ESC to go back",
+        canvas.width / 2,
+        canvas.height - 30
+    );
+}
 }
