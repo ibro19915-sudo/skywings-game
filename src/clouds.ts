@@ -1,3 +1,6 @@
+
+import { loadImage } from "./imageLoader.js";
+
 export class Clouds {
 
     x: number;
@@ -9,13 +12,14 @@ export class Clouds {
         this.x = 0;
         this.speed = 1;
 
-        this.image = new Image();
-        this.image.src = "assets/images/clouds.png";
+        this.image = loadImage("assets/images/clouds.png");
     }
 
-    update(): void {
+     update(delta: number): void {
 
-        this.x -= this.speed;
+         const dt = delta * 60;
+
+        this.x -= this.speed * dt;
 
         if (this.x <= -640) {
             this.x = 0;

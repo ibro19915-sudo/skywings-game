@@ -1,3 +1,6 @@
+import { loadImage } from "./imageLoader.js";
+
+
 export class Ground {
 
 x: number;
@@ -16,13 +19,14 @@ this.height = 60;
 
 this .speed = 3;
 
-this.image = new Image();
-this.image.src = "assets/images/ground.png";
+this.image = loadImage("assets/images/ground.png");
 
 }
 
-update(): void {
-this.x -= this.speed;
+update(delta: number): void {
+const dt = delta * 60;
+
+this.x -= this.speed * dt;
 if (this.x <= -this.width){
     this.x = 0;
 }

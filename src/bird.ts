@@ -1,4 +1,9 @@
 import { getSelectedSkin } from "./skins.js";
+import { loadImage } from "./imageLoader.js";
+
+const DEG_TO_RAD = Math.PI / 180;
+const GRAVITY = 0.45;
+const JUMP_FORCE = -9;
 
 export class Bird {
 
@@ -32,19 +37,23 @@ constructor() {
     this.frameCounter = 0;
 }
 
-    update(): void {
 
-        const gravity = 0.45;
+    update(delta: number): void {
 
-        this.velocityY += gravity;
-        this.y += this.velocityY;
+        
+
+
+const dt = delta * 60;
+
+this.velocityY += GRAVITY * dt;
+this.y += this.velocityY * dt;
         if (this.velocityY < 0) {
 
             this.angle = -25;
 
         } else {
 
-            this.angle += 3;
+            this.angle += 3 * dt;
 
             if (this.angle > 90) {
                 this.angle = 90;
@@ -53,19 +62,21 @@ constructor() {
         }
 
         // Wing animation
-        this.frameCounter++;
+        this.frameCounter += delta;
 
-        if (this.frameCounter >= 6) {
+        if (this.frameCounter >= 0.1) {
 
             this.frameCounter = 0;
             this.frame = (this.frame + 1) % 3;
 
         }
-
+       
     }
+    
 
 jump(): void {
-    this.velocityY = -9;
+    
+    this.velocityY = JUMP_FORCE;
     this.angle = -25;
 }
 loadSkin(): void {
@@ -76,10 +87,11 @@ loadSkin(): void {
 
     for (let i = 1; i <= 3; i++) {
 
-        const img = new Image();
-        img.src = `assets/images/${selectedSkin}bird${i}.png`;
+       const img = loadImage(
+    `assets/images/${selectedSkin}bird${i}.png`
+);
 
-        this.images.push(img);
+this.images.push(img);
     }
 
 }
@@ -93,7 +105,7 @@ loadSkin(): void {
             this.y + this.height / 2
         );
 
-        ctx.rotate(this.angle * Math.PI / 180);
+        ctx.rotate(this.angle * DEG_TO_RAD);
 
         ctx.drawImage(
             this.images[this.frame],

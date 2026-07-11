@@ -1,4 +1,5 @@
 import type { Difficulty } from "./difficulty.js";
+import { loadImage } from "./imageLoader.js";
 
 export class Pipe {
 
@@ -38,11 +39,12 @@ export class Pipe {
     this.passed = false;
     this.playableHeight = 640;
 
-    this.image = new Image();
-    this.image.src = "assets/images/pipe.png";
+    this.image = loadImage("assets/images/pipe.png");
 }
-update(): void {
-    this.x -= this.speed;
+update(delta: number): void {
+    const dt = delta * 60;
+
+    this.x -= this.speed * dt;
 }
    
 

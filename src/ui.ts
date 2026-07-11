@@ -5,7 +5,8 @@ import { Pipe } from "./pipe.js";
 import type { Difficulty } from "./difficulty.js";
 import { Statistics } from "./statistics.js";
 import { isSkinUnlocked, SkinType } from "./skins.js";
-
+import { drawPipes } from "./pipeManager.js";
+import { GS } from "./gameState.js";
 const shopUnlockRequirements = [0, 50, 150, 300];
 
 const IS_TOUCH =
@@ -178,22 +179,12 @@ export function drawResumeCountdown(
     resumeCountdown: number,
     score: number
 ): void {
-    let skyColor = "#87CEEB";
-    if (score >= 30) {
-        skyColor = "#FFA500"; // Sunrise
-    } else if (score >= 20) {
-        skyColor = "#191970"; // Night
-    } else if (score >= 10) {
-        skyColor = "#FF7F50"; // Sunset
-    }
-    ctx.fillStyle = skyColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+   ctx.fillStyle = getSkyColor(score);
+ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     clouds.draw(ctx);
     // Draw pipes
-    for (const pipe of pipes) {
-        pipe.draw(ctx);
-    }
+   drawPipes(pipes, ctx);
 
     ground.draw(ctx);
     bird.draw(ctx);
@@ -225,25 +216,17 @@ export function drawMenu(
     score: number,
     currentDifficulty: Difficulty
 ): void {
-    let skyColor = "#87CEEB";
-    if (score >= 30) {
-        skyColor = "#FFA500"; // Sunrise
-    } else if (score >= 20) {
-        skyColor = "#191970"; // Night
-    } else if (score >= 10) {
-        skyColor = "#FF7F50"; // Sunset
-    }
-    ctx.fillStyle = skyColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+   ctx.fillStyle = getSkyColor(score);
+ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    clouds.update();
+   
     clouds.draw(ctx);
 
     if (countdownRunning || showGo) {
         // Keep background, clouds, bird, and ground visible during countdown/GO.
         bird.y = menuBirdY + Math.sin(menuTime) * 8;
         bird.draw(ctx);
-        ground.update();
+        ground.update(GS.delta);
         ground.draw(ctx);
 
         ctx.fillStyle = "white";
@@ -271,7 +254,7 @@ export function drawMenu(
 
     bird.y = menuBirdY;
     bird.draw(ctx);
-    ground.update();
+    ground.update(GS.delta);
     ground.draw(ctx);
 
     ctx.fillStyle = "white";
@@ -318,7 +301,7 @@ export function drawMenu(
         ctx.fillText("Press B for Shop", canvas.width / 2, 500);
     }
 
-    ground.update();
+    ground.update(GS.delta);
     ground.draw(ctx);
 }
 
