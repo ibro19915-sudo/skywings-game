@@ -1,6 +1,18 @@
 import { type Difficulty } from "./difficulty.js";
 import type { Settings } from "./settings.js";
 
+import {
+    settingsMusicButton,
+    settingsSoundButton,
+    settingsFPSButton,
+    settingsDifficultyButton,
+    difficultyLeftButton,
+    difficultyRightButton,
+    settingsResetButton,
+    settingsBackButton,
+    settingsYesButton,
+    settingsNoButton
+} from "./game.js";
 export type SettingsMenuOption =
     "difficulty" |
     "soundEffects" |
@@ -8,6 +20,7 @@ export type SettingsMenuOption =
     "fpsCounter" |
     "resetProgress" |
     "back";
+    import { GS } from "./gameState.js";
 
 export interface SettingsMenuState {
     selectedOption: SettingsMenuOption;
@@ -133,88 +146,154 @@ export function drawSettingsMenu(
     showResetConfirmation = false,
     resetConfirmationChoice: "yes" | "no" = "yes"
 ): void {
+
     ctx.fillStyle = "#0f172a";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
-    ctx.font = "48px Arial";
-    const isTouchDevice =
-    "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    ctx.fillText("SETTINGS", canvas.width / 2, 100);
+    ctx.font = "bold 44px Arial";
+    ctx.fillText("⚙ Settings", canvas.width / 2, 100);
 
-    ctx.font = "28px Arial";
-    const startY = 180;
-    const lineHeight = 54;
+    // Update button text
+    settingsMusicButton.text =
+        state.settings.music ? "ON" : "OFF";
 
-    const options = [
-        {
-            label: "Difficulty",
-            value: formatDifficulty(state.settings.difficulty),
-            key: "difficulty" as const
-        },
-        {
-            label: "Sound Effects",
-            value: formatOnOff(state.settings.soundEffects),
-            key: "soundEffects" as const
-        },
-        {
-    label: "Music",
-    value: formatOnOff(state.settings.music),
-    key: "music" as const
-},
-        {
-            label: "FPS Counter",
-            value: formatOnOff(state.settings.fpsCounter),
-            key: "fpsCounter" as const
-        },
-        {
-            label: "Reset Progress",
-            value: "",
-            key: "resetProgress" as const
-        },
-        {
-            label: "Back",
-            value: "",
-            key: "back" as const
-        }
-    ];
+    settingsSoundButton.text =
+        state.settings.soundEffects ? "ON" : "OFF";
 
-    options.forEach((option, index) => {
-        const y = startY + index * lineHeight;
-        const isSelected = state.selectedOption === option.key;
-        ctx.fillStyle = isSelected ? "#FFD700" : "white";
-        ctx.fillText(`${option.label}${option.value ? `: ${option.value}` : ""}`, canvas.width / 2, y);
-    });
+    settingsFPSButton.text =
+        state.settings.fpsCounter ? "ON" : "OFF";
 
+    settingsDifficultyButton.text =
+    state.settings.difficulty.toUpperCase();
+
+    // Labels
+    ctx.fillStyle = "white";
+    ctx.textAlign = "left";
+    ctx.font = "24px Arial";
+
+const iconX = canvas.width * 0.12;
+const textX = iconX + 42;
+
+ctx.fillText("🎵", iconX, settingsMusicButton.y + 36);
+ctx.fillText("Music", textX, settingsMusicButton.y + 36);
+
+ctx.fillText("🔊", iconX, settingsSoundButton.y + 36);
+ctx.fillText("Sound", textX, settingsSoundButton.y + 36);
+
+ctx.fillText("📊", iconX, settingsFPSButton.y + 36);
+ctx.fillText("FPS Counter", textX, settingsFPSButton.y + 36);
+
+ctx.fillText("🎯", iconX, settingsDifficultyButton.y + 36);
+ctx.fillText("Difficulty", textX, settingsDifficultyButton.y + 36);
+
+    // Draw normal buttons
+   settingsMusicButton.draw(ctx);
+settingsSoundButton.draw(ctx);
+settingsFPSButton.draw(ctx);
+
+difficultyLeftButton.draw(ctx);
+settingsDifficultyButton.hovered = false;
+settingsDifficultyButton.pressed = false;
+settingsDifficultyButton.draw(ctx);
+difficultyRightButton.draw(ctx);
+
+    
+    ctx.save();
+
+difficultyLeftButton.draw(ctx);
+difficultyRightButton.draw(ctx);
+
+
+    settingsResetButton.draw(ctx);
+    settingsBackButton.draw(ctx);
+
+
+  
+     
+    // Popup
     if (showResetConfirmation) {
+
+        // Dark overlay
+        
+        ctx.fillStyle = "rgba(0,0,0,0.65)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const boxWidth = 460;
+        const boxHeight = 260;
+
+        const boxX = (canvas.width - boxWidth) / 2;
+        const boxY = (canvas.height - boxHeight) / 2;
+
+        // Window
+        ctx.fillStyle = "#111827";
+        ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+        ctx.strokeStyle = "#334155";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
         ctx.fillStyle = "#fbbf24";
-        ctx.font = "26px Arial";
-        ctx.fillText("Are you sure?", canvas.width / 2, 500);
+        ctx.textAlign = "center";
+        ctx.font = "30px Arial";
 
-        const yesSelected = resetConfirmationChoice === "yes";
-        const noSelected = resetConfirmationChoice === "no";
+        ctx.fillText(
+            "Are you sure you want",
+            canvas.width / 2,
+            boxY + 70
+        );
 
-        ctx.fillStyle = yesSelected ? "#ffffff" : "#888888";
-        ctx.fillText("YES", canvas.width / 2 - 70, 550);
+        ctx.fillText(
+            "to reset all progress?",
+            canvas.width / 2,
+            boxY + 110
+        );
 
-        ctx.fillStyle = noSelected ? "#ffffff" : "#888888";
-        ctx.fillText("NO", canvas.width / 2 + 70, 550);
+        // YES button
+       settingsYesButton.width = 150;
+settingsYesButton.height = 55;
+settingsYesButton.y = boxY + 170;
+       //No button
+settingsNoButton.width = 150;
+settingsNoButton.height = 55;
+settingsNoButton.y = boxY + 170;
+
+
+
+
+
+// Keep centered
+settingsYesButton.x =
+    canvas.width / 2 - settingsYesButton.width - 15;
+
+settingsNoButton.x =
+    canvas.width / 2 + 15;
+
+
+
+settingsYesButton.draw(ctx);
+settingsNoButton.draw(ctx);
+
+
+
+
     }
- ctx.fillStyle = "white";
-ctx.font = "20px Arial";
+     // Draw success message
+if (GS.showResetSuccess) {
 
-if (isTouchDevice) {
+    ctx.save();
+
+    ctx.fillStyle = "#00ff66";
+    ctx.textAlign = "center";
+    ctx.font = "bold 24px Arial";
+
     ctx.fillText(
-       "Touch an option • Touch bottom-left to go back" ,
+        "✓ Progress Reset Successfully!",
         canvas.width / 2,
-        canvas.height - 30
+        settingsResetButton.y - 20
     );
-} else {
-    ctx.fillText(
-        "Arrow Keys + Enter • Press ESC to go back",
-        canvas.width / 2,
-        canvas.height - 30
-    );
+
+    ctx.restore();
 }
 }

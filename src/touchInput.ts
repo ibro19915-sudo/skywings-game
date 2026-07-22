@@ -3,6 +3,8 @@ import { canvas, bird, ground, clouds, pipes } from "./game.js";
 import { onChangeDifficultyNext, onChangeDifficultyPrev, onChangeSkinLeft, onChangeSkinRight, onSpace, onTogglePause, openSettingsMenu, resetAllProgress } from "./inputHandlers.js";
 import { playMenuMusic, stopMenuMusic, setAudioSettings } from "./audio.js";
 import { saveSettings, loadSettings } from "./settings.js";
+//Buttons
+import { handleMenuClick } from "./buttonManager.js";
 
 function getCanvasTouchCoordinates(clientX: number, clientY: number): { x: number; y: number } {
     const rect = canvas.getBoundingClientRect();
@@ -103,10 +105,12 @@ export function initTouchHandlers() {
             if (GS.showResetConfirmation) {
                 if (x < canvas.width / 2) {
                     GS.resetConfirmationChoice = "yes";
-                    resetAllProgress();
-                    GS.showSettingsMenu = false;
-                    GS.settingsMenuState = null;
-                    GS.showResetConfirmation = false;
+                   resetAllProgress();
+
+GS.showResetConfirmation = false;
+
+GS.showResetSuccess = true;
+GS.resetSuccessTimer = 180;
                 } else {
                     GS.resetConfirmationChoice = "no";
                     GS.showResetConfirmation = false;
@@ -199,22 +203,22 @@ export function initTouchHandlers() {
         if (GS.gameStarted && !GS.paused && !GS.gameOver && isTopRightCorner) { onTogglePause(); return; }
 
         if (!GS.gameStarted && !GS.countdownRunning && !GS.showStatistics && !GS.showSettingsMenu) {
-            if (isTopLeftCorner) { GS.showStatistics = true; return; }
-            if (isTopRightCorner) { openSettingsMenu(); return; }
-            if (isBottomCenter) { GS.showShop = true; GS.selectedShopSkin = 0; return; }
+           if (handleMenuClick(x, y)) {
+    return;
+}
 
-            if (GS.isIPhone) {
-                if (isLeftEdge) { onChangeSkinLeft(); return; }
-                if (isRightEdge) { onChangeSkinRight(); return; }
-                if (isCenterArea) { onSpace(); return; }
-                return;
-            }
+// Keep skin changing for now
+if (isLeftEdge) {
+    onChangeSkinLeft();
+    return;
+}
 
-            if (isLeftEdge) { onChangeSkinLeft(); return; }
-            if (isRightEdge) { onChangeSkinRight(); return; }
+if (isRightEdge) {
+    onChangeSkinRight();
+    return;
+}
 
-            onSpace();
-            return;
+return;
         }
 
         if (GS.gameStarted && !GS.paused && !GS.gameOver) { onSpace(); }

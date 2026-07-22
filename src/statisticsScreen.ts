@@ -3,7 +3,8 @@ import {
   averageScore,
   formattedPlayTime
 } from "./statistics.js";
-
+import { GS } from "./gameState.js";
+import { statisticsBackButton } from "./game.js";
 
 export function drawStatisticsScreen(
     ctx: CanvasRenderingContext2D,
@@ -12,85 +13,200 @@ export function drawStatisticsScreen(
     bestScore: number
 ): void {
 
-    ctx.fillStyle = "#87ceeb";
-    ctx.fillRect(0,0, canvas.width, canvas.height);
+     // Animate popup
 
-    ctx.fillStyle = "white";
+    if (GS.statisticsPopupOpening) {
+
+        GS.statisticsPopupScale += 0.02;
+        GS.statisticsPopupAlpha += 0.08;
+
+        if (GS.statisticsPopupScale >= 1) {
+            GS.statisticsPopupScale = 1;
+        }
+
+        if (GS.statisticsPopupAlpha >= 1) {
+            GS.statisticsPopupAlpha = 1;
+            GS.statisticsPopupOpening = false;
+        }
+
+    }
+    
+
+
+    //Dark overlay
+
+   ctx.fillStyle = "rgba(0,0,0,0.45)";
+ctx.fillRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+);
+    const panelWidth = 560;
+    const panelHeight = 440;
+
+    const panelX =
+        (canvas.width - panelWidth) / 2;
+
+    const panelY =
+        (canvas.height - panelHeight) / 2;
+
+      
+
+        ctx.save();
+
+        const scale = GS.statisticsPopupScale;
+
+ctx.translate(
+    canvas.width / 2,
+    canvas.height / 2
+);
+
+ctx.scale(scale, scale);
+
+ctx.translate(
+    -canvas.width / 2,
+    -canvas.height / 2
+);
+
+    ctx.globalAlpha = GS.statisticsPopupAlpha;
+
+    statisticsBackButton.x =
+    canvas.width / 2 -
+    statisticsBackButton.width / 2;
+
+statisticsBackButton.y =
+    panelY + panelHeight - 65;
+
+ctx.fillStyle = "#ffffff";
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        panelX,
+        panelY,
+        panelWidth,
+        panelHeight,
+        20
+    );
+
+    ctx.fill();
+
+    ctx.strokeStyle = "#7ec8ff";
+ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.fillStyle = "#1d3557";
     const isTouchDevice =
     "ontouchstart" in window || navigator.maxTouchPoints > 0;
     ctx.textAlign = "center";
 
     ctx.font = "48px Arial"
-    ctx.fillText(
-        "Statistics",
-        canvas.width / 2,
-        80
-    );
+   ctx.fillText(
+    "Statistics",
+    canvas.width / 2,
+    panelY + 52
+);
 
     ctx.font = "28px Arial";
 
-   let y = 150;
+    function drawStatRow(
+    icon: string,
+    label: string,
+    value: string | number,
+    y: number
+) {
+    const startX = panelX + 45;
 
-ctx.fillText(
-    "Games Played: " + statistics.gamesPlayed,
-    canvas.width / 2,
-    y
-);
+    ctx.textAlign = "left";
 
-y += 45;
+    // icon
+    ctx.font = "26px Arial";
+    ctx.fillText(icon, startX, y);
 
-ctx.fillText(
-    "Total Pipes: " + statistics.totalPipes,
-    canvas.width / 2,
-    y
-);
+    // label
+    ctx.font = "24px Arial";
+    ctx.fillStyle = "#1d3557";
 
-y += 45;
-
-ctx.fillText(
-    "Total Crashes: " + statistics.totalCrashes,
-    canvas.width / 2,
-    y
-);
-
-y += 45;
-
-ctx.fillText(
-    "Best Score: " + bestScore,
-    canvas.width / 2,
-    y
-);
-
-y += 45;
-
-ctx.fillText(
-    "Play Time: " + formattedPlayTime(statistics),
-    canvas.width / 2,
-    y
-);
-
-y += 45;
-
-ctx.fillText(
-    "Average Score: " +
-    averageScore(statistics).toFixed(1),
-    canvas.width / 2,
-    y
-);
-
-
-
-   if (isTouchDevice) {
     ctx.fillText(
-        "Touch bottom-left to return",
-        canvas.width / 2,
-        canvas.height - 40
+        label,
+        startX + 38,
+        y
     );
-} else {
+
+    // value
+    ctx.textAlign = "right";
+
+    ctx.fillStyle = "#234b84";
+
     ctx.fillText(
-        "Press ESC to Return",
-        canvas.width / 2,
-        canvas.height - 40
+        String(value),
+        panelX + panelWidth - 55,
+        y
     );
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#1d3557";
 }
+
+  let y = panelY + 105;
+
+drawStatRow(
+    "🎮",
+    "Games Played",
+    statistics.gamesPlayed,
+    y
+);
+
+y += 50;
+
+drawStatRow(
+    "🚧",
+    "Total Pipes",
+    statistics.totalPipes,
+    y
+);
+
+y += 50;
+
+drawStatRow(
+    "💥",
+    "Total Crashes",
+    statistics.totalCrashes,
+    y
+);
+
+y += 50;
+
+drawStatRow(
+    "🏆",
+    "Best Score",
+    bestScore,
+    y
+);
+
+y += 50;
+
+drawStatRow(
+    "⏱",
+    "Play Time",
+    formattedPlayTime(statistics),
+    y
+);
+
+y += 50;
+
+drawStatRow(
+    "📈",
+    "Average Score",
+    averageScore(statistics).toFixed(1),
+    y
+);
+
+  statisticsBackButton.draw(ctx);
+ 
+
+
+
+ctx.restore();
 }

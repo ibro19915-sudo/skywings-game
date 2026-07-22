@@ -11,6 +11,10 @@ import { resetGame as resetGameInternal } from "./reset.js";
 import { addXP } from "./xp.js";
 import { setupInput } from "./input.js";
 import { onScore } from "./achievements.js";
+import {
+    settingsYesButton,
+    settingsNoButton
+} from "./game.js";
 
 export function setupHandlers() {
     // noop placeholder in case initialization needed later
@@ -104,21 +108,52 @@ export function onSpace(): void {
 
         const canUnlock = GS.statistics.totalPipes >= requiredPipes;
 
-        if (!alreadyOwned && canUnlock) {
-            const price = GS.skinPrices[GS.selectedShopSkin];
-            if (GS.statistics.coins >= price) {
-                GS.statistics.coins -= price;
+        const alreadySelected =
+    GS.skins[GS.currentSkinIndex] === skin;
 
-                saveUnlockedSkin(skin);
-                saveSelectedSkin(skin);
-                GS.currentSkinIndex = GS.skins.indexOf(skin);
-                saveStatistics(GS.statistics);
-                bird.loadSkin();
-                GS.showShop = false;
-            }
-        }
+if (alreadySelected) {
+    return;
+}
 
-        return;
+if (alreadyOwned) {
+
+    saveSelectedSkin(skin);
+
+    GS.currentSkinIndex =
+        GS.skins.indexOf(skin);
+
+    bird.loadSkin();
+
+    GS.showShop = false;
+
+    return;
+}
+
+if (canUnlock) {
+
+    const price =
+        GS.skinPrices[GS.selectedShopSkin];
+
+    if (GS.statistics.coins >= price) {
+
+        GS.statistics.coins -= price;
+
+        saveUnlockedSkin(skin);
+
+        saveSelectedSkin(skin);
+
+        GS.currentSkinIndex =
+            GS.skins.indexOf(skin);
+
+        saveStatistics(GS.statistics);
+
+        bird.loadSkin();
+
+        GS.showShop = false;
+    }
+}
+
+return;
     }
 
     if (GS.showSettingsMenu || GS.showStatistics) return;
@@ -234,33 +269,44 @@ export function handleSettingsKey(key: string): void {
     if (!GS.showSettingsMenu || !GS.settingsMenuState) return;
 
     if (GS.showResetConfirmation) {
-        if (key === "Escape") {
-            GS.showResetConfirmation = false;
-            return;
+
+    if (key === "Escape") {
+        GS.showResetConfirmation = false;
+        return;
+    }
+
+    if (key === "ArrowLeft") {
+        GS.resetConfirmationChoice = "yes";
+        return;
+    }
+
+    if (key === "ArrowRight") {
+        GS.resetConfirmationChoice = "no";
+        return;
+    }
+
+    if (key === "Enter") {
+
+        if (GS.resetConfirmationChoice === "yes") {
+            resetAllProgress();
+
+            GS.showResetSuccess = true;
+            GS.resetSuccessTimer = 120;
         }
 
-        if (key === "ArrowLeft") {
-            GS.resetConfirmationChoice = "yes";
-            return;
-        }
+        GS.showResetConfirmation = false;
 
-        if (key === "ArrowRight") {
-            GS.resetConfirmationChoice = "no";
-            return;
-        }
+        settingsYesButton.setPressed(false);
+        settingsNoButton.setPressed(false);
 
-        if (key === "Enter") {
-            if (GS.resetConfirmationChoice === "yes") {
-                resetAllProgress();
-                GS.showSettingsMenu = false;
-                GS.settingsMenuState = null;
-            }
-            GS.showResetConfirmation = false;
-            return;
-        }
+        settingsYesButton.setHoverState(false);
+        settingsNoButton.setHoverState(false);
 
         return;
     }
+
+    return;
+}
 
     if (key === "Escape") {
         GS.showSettingsMenu = false;
@@ -310,13 +356,25 @@ export function initializeInput() {
         onChangeDifficultyPrev,
         onChangeDifficultyNext,
         onOpenShop: () => {
-            if (!GS.gameStarted && !GS.showStatistics && !GS.showSettingsMenu) {
+            if (
+    !GS.gameStarted &&
+    !GS.countdownRunning &&
+    !GS.showGo &&
+    !GS.showStatistics &&
+    !GS.showSettingsMenu
+) {
                 GS.showShop = true;
                 GS.selectedShopSkin = 0;
             }
         },
         onOpenSettings: () => {
-            if (!GS.gameStarted && !GS.countdownRunning && !GS.showStatistics && !GS.showSettingsMenu) {
+            if (
+    !GS.gameStarted &&
+    !GS.countdownRunning &&
+    !GS.showGo &&
+    !GS.showStatistics &&
+    !GS.showSettingsMenu
+) {
                 openSettingsMenu();
             }
         },
@@ -325,10 +383,21 @@ export function initializeInput() {
         },
         onSpace,
         onShowStatistics: () => {
-            if (!GS.gameStarted && !GS.showSettingsMenu && !GS.showStatistics) {
-                GS.showStatistics = true;
-            }
-        },
+    if (
+        !GS.gameStarted &&
+        !GS.countdownRunning &&
+        !GS.showGo &&
+        !GS.showStatistics &&
+        !GS.showSettingsMenu
+    ) {
+
+        GS.statisticsPopupScale = 0.9;
+        GS.statisticsPopupAlpha = 0;
+        GS.statisticsPopupOpening = true;
+
+        GS.showStatistics = true;
+    }
+},
         onHideStatistics: () => {
             if (GS.showShop) {
                 GS.showShop = false;
@@ -336,8 +405,13 @@ export function initializeInput() {
                 GS.showSettingsMenu = false;
                 GS.settingsMenuState = null;
             } else if (GS.showStatistics) {
-                GS.showStatistics = false;
-            }
+
+    GS.statisticsClosing = true;
+    GS.statisticsOpening = false;
+
+}
         },
     });
 }
+
+

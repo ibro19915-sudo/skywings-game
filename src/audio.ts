@@ -5,6 +5,8 @@ const die = new Audio("assets/sounds/die.mp3");
 const menuMusic = new Audio(
       "assets/sounds/menuMusic.mp3"
 );
+const buttonClick = new Audio("assets/sounds/buttonClick.mp3");
+const buttonHover = new Audio("assets/sounds/buttonHover.mp3");
 
 menuMusic.loop = true;
 menuMusic.volume = 0.5;
@@ -41,8 +43,9 @@ export function setAudioSettings(settings: Settings): void {
     musicEnabled = settings.music;
 
     if (!musicEnabled) {
-        menuMusic.pause();
-        menuMusic.currentTime = 0;
+        stopMenuMusic();
+    } else {
+        resumeMenuMusic();
     }
 }
 
@@ -74,3 +77,10 @@ export function playDie(): void {
     playSound(die);
 }
 
+export function playButtonClick(): void {
+    playSound(buttonClick);
+}
+
+export function playButtonHover(): void {
+    playSound(buttonHover);
+}

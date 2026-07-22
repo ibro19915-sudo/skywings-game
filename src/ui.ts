@@ -7,6 +7,17 @@ import { Statistics } from "./statistics.js";
 import { isSkinUnlocked, SkinType } from "./skins.js";
 import { drawPipes } from "./pipeManager.js";
 import { GS } from "./gameState.js";
+// Buttons 
+import {
+    playButton,
+    shopButton,
+    statsButton,
+    settingsButton,
+    pauseButton,
+    pauseContinueButton,
+    restartButton,
+    pauseMainMenuButton
+} from "./game.js";
 const shopUnlockRequirements = [0, 50, 150, 300];
 
 const IS_TOUCH =
@@ -137,36 +148,33 @@ export function drawGameOver(
         );
     }
 
-    ctx.font = "20px Arial";
-    ctx.fillText(
-        IS_TOUCH ? "Touch to Restart" : "Press SPACE to Restart",
-        canvas.width / 2,
-        560
-    );
+  restartButton.draw(ctx);
+
+
     ctx.restore();
 }
 
-export function drawPauseScreen(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement): void {
-    ctx.fillStyle = "rgba(0,0,0,0.6)";
+export function drawPauseScreen(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement
+): void {
+
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = "white";
-    ctx.font = "60px Arial";
     ctx.textAlign = "center";
+
+    ctx.font = "bold 60px Arial";
 
     ctx.fillText(
         "PAUSED",
         canvas.width / 2,
-        canvas.height / 2
+        canvas.height * 0.30
     );
 
-    ctx.font = "24px Arial";
-
-    ctx.fillText(
-        IS_TOUCH ? "Touch to Continue" : "Press P to Continue",
-        canvas.width / 2,
-        canvas.height / 2 + 60
-    );
+    pauseContinueButton.draw(ctx);
+pauseMainMenuButton.draw(ctx);
 }
 
 export function drawResumeCountdown(
@@ -262,47 +270,14 @@ ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.textAlign = "center";
     ctx.fillText("SKY WINGS", canvas.width / 2, 70);
 
-    ctx.font = "24px Arial";
-    ctx.fillText(
-        "Current Skin:" +
-        skins[currentSkinIndex].toUpperCase(),
-        canvas.width / 2,
-        205
-    );
+    
 
-    ctx.fillText(
-        "Difficulty: " + currentDifficulty.toUpperCase(),
-        canvas.width / 2,
-        245
-    );
+    playButton.draw(ctx);
+shopButton.draw(ctx);
+statsButton.draw(ctx);
+settingsButton.draw(ctx);
 
-    if (!IS_TOUCH) {
-        ctx.fillText(
-            "Q / E = Change Difficulty",
-            canvas.width / 2,
-            285
-        );
-    }
-
-    if (IS_TOUCH) {
-        ctx.fillText("Touch to Start", canvas.width / 2, 310);
-        ctx.fillText("Touch Top Left for Statistics", canvas.width / 2, 340);
-        ctx.fillText("Touch Top Right for Settings", canvas.width / 2, 470);
-        ctx.fillText(
-            "Touch Left/Right Edge to Change Skin",
-            canvas.width / 2,
-            510
-        );
-        ctx.fillText("Touch Bottom Center for Shop", canvas.width / 2, 550);
-    } else {
-        ctx.fillText("Press SPACE to Start", canvas.width / 2, 320);
-        ctx.fillText("Press S for Statistics", canvas.width / 2, 350);
-        ctx.fillText("Press M for Settings", canvas.width / 2, 460);
-        ctx.fillText("Press B for Shop", canvas.width / 2, 500);
-    }
-
-    ground.update(GS.delta);
-    ground.draw(ctx);
+    
 }
 
 
@@ -352,14 +327,23 @@ export function drawHUD(
         190
     );
 
-    ctx.textAlign = "right";
     ctx.font = "18px Arial";
 
+if (IS_IPHONE || IS_IPAD) {
+
+    pauseButton.draw(ctx);
+
+} else {
+
+    ctx.textAlign = "right";
+
     ctx.fillText(
-        IS_TOUCH ? "Touch to Pause" : "P = Pause",
+        "P = Pause",
         canvas.width - 20,
         30
     );
+
+}
 }
 
 export function drawAchievementPopup(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, achievementText: string): void {
@@ -596,45 +580,4 @@ ctx.fillText(
     ctx.font = "28px Arial";
 
 
-    // Controls
-    ctx.fillStyle = "white";
-    ctx.font = "22px Arial";
-
-    if (IS_TOUCH) {
-        ctx.fillText(
-            "Touch left/right sides to change skin",
-            canvas.width / 2,
-            canvas.height - 110
-        );
-
-        ctx.fillText(
-            "Touch center to buy/select skin",
-            canvas.width / 2,
-            canvas.height - 80
-        );
-
-        ctx.fillText(
-            "Touch bottom-left to return",
-            canvas.width / 2,
-            canvas.height - 50
-        );
-    } else {
-        ctx.fillText(
-            "A / D = Change Skin",
-            canvas.width / 2,
-            canvas.height - 90
-        );
-
-        ctx.fillText(
-            "SPACE = Buy/Select",
-            canvas.width / 2,
-            canvas.height - 60
-        );
-
-        ctx.fillText(
-            "ESC = Back",
-            canvas.width / 2,
-            canvas.height - 30
-        );
-    }
 }
