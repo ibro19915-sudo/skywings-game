@@ -2,7 +2,8 @@ import { Bird } from "./bird.js";
 import { Ground } from "./ground.js";
 import { saveStatistics } from "./statistics.js";
 import { playHit, playDie } from "./audio.js";
-
+import { layoutActiveScreen } from "./game.js";
+import { stopMenuMusic } from "./audio.js";
 export function checkDeath(
     bird: Bird,
     ground: Ground,
@@ -56,6 +57,9 @@ export function checkCeilingDeath(
     GS.statistics.totalScore += GS.score;
 
     GS.gameOver = true;
+    stopMenuMusic();
+GS.menuMusicPlaying = false;
+    layoutActiveScreen();
 
     return true;
 }
@@ -87,4 +91,5 @@ function gameOver(gameState: any) {
     saveStatistics(gameState.statistics);
 
     gameState.gameOver = true;
+    layoutActiveScreen();
 }

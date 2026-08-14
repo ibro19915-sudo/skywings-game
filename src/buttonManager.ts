@@ -1,14 +1,19 @@
 import { GS } from "./gameState.js";
 
+
+
 import { resetAllProgress } from "./inputHandlers.js";
 import {
     playButton,
     shopButton,
     restartButton,
     pauseContinueButton,
-pauseMainMenuButton,
+    pauseMainMenuButton,
     statsButton,
     settingsButton,
+    loginButton,
+
+   
 
     shopPrevButton,
     shopNextButton,
@@ -16,24 +21,39 @@ pauseMainMenuButton,
     shopBackButton,
     statisticsBackButton,
 
-     settingsMusicButton,
+    settingsMusicButton,
     settingsSoundButton,
     settingsFPSButton,
     settingsDifficultyButton,
     difficultyLeftButton,
-difficultyRightButton,
+    difficultyRightButton,
     settingsResetButton,
     settingsBackButton,
     settingsYesButton,
-    settingsNoButton
+    settingsNoButton,
+
+    initScene,
+    bird,
+    layoutActiveScreen
 } from "./game.js";
+import {
+    openLoginScreen,
+    closeLoginScreen,
+    handleLoginKey,
+    handleLoginFieldClick,
+    loginActionButton,
+    signupButton,
+    loginBackButton
+} from "./loginScreen.js";
 //settings buttons
 import {
     saveSettings
 } from "./settings.js";
 
 import {
-    setAudioSettings
+    setAudioSettings,
+    playMenuMusic,
+    stopMenuMusic
 } from "./audio.js";
 
 
@@ -46,22 +66,92 @@ import {
     playButtonClick
 } from "./audio.js";
 
-function flashButton(button: { setPressed(value: boolean): void }) {
+function flashButton(button: any) {
 
     button.setPressed(true);
+
+    button.flash = 1;
 
     setTimeout(() => {
 
         button.setPressed(false);
 
     }, 100);
-
 }
 
 export function handleMenuClick(
     mouseX: number,
     mouseY: number
 ): boolean {
+
+    
+
+// =========================
+// LOGIN SCREEN
+// =========================
+
+if (GS.showLoginScreen) {
+
+    // Handle clicks inside email/password fields
+    if (handleLoginFieldClick(mouseX, mouseY)) {
+        return true;
+    }
+
+    if (loginActionButton.contains(mouseX, mouseY)) {
+
+        playButtonClick();
+
+        flashButton(loginActionButton);
+
+        setTimeout(() => {
+            handleLoginKey("Enter");
+            loginActionButton.setPressed(false);
+        }, 100);
+
+        return true;
+    }
+
+    if (signupButton.contains(mouseX, mouseY)) {
+
+        playButtonClick();
+
+        flashButton(signupButton);
+
+        setTimeout(() => {
+
+            GS.loginMode =
+                GS.loginMode === "login"
+                    ? "signup"
+                    : "login";
+
+            GS.loginMessage = "";
+
+            signupButton.setPressed(false);
+
+        }, 120);
+
+        return true;
+    }
+
+    if (loginBackButton.contains(mouseX, mouseY)) {
+
+        playButtonClick();
+
+        flashButton(loginBackButton);
+
+        setTimeout(() => {
+
+            closeLoginScreen();
+
+            loginBackButton.setPressed(false);
+
+        }, 100);
+
+        return true;
+    }
+
+    return true;
+}
 
  if (GS.gameOver) {
 
@@ -72,6 +162,7 @@ export function handleMenuClick(
         flashButton(restartButton);
 
         onSpace();
+        restartButton.setPressed(false);
 
         return true;
     }
@@ -84,14 +175,28 @@ if (GS.paused) {
 
     if (pauseContinueButton.contains(mouseX, mouseY)) {
 
-        playButtonClick();
+    playButtonClick();
+    flashButton(pauseContinueButton);
 
-        flashButton(pauseContinueButton);
+    GS.paused = false;
+    layoutActiveScreen();
 
-        GS.paused = false;
+GS.resumeCountdownRunning = true;
+GS.resumeCountdown = 3;
 
-        return true;
+const timer = setInterval(() => {
+    GS.resumeCountdown--;
+
+    if (GS.resumeCountdown <= 0) {
+        clearInterval(timer);
+        GS.resumeCountdownRunning = false;
     }
+}, 1000);
+
+return true;
+
+    
+}
 
     if (pauseMainMenuButton.contains(mouseX, mouseY)) {
 
@@ -99,12 +204,30 @@ if (GS.paused) {
 
         flashButton(pauseMainMenuButton);
 
-        GS.paused = false;
+       GS.paused = false;
+       layoutActiveScreen();
+
 GS.gameStarted = false;
 GS.gameOver = false;
+       layoutActiveScreen();
+
 GS.score = 0;
+
 GS.countdownRunning = false;
 GS.showGo = false;
+
+GS.resumeCountdownRunning = false;
+GS.resumeCountdown = 3;
+
+GS.newRecord = false;
+
+GS.menuTime = 0;
+GS.menuBirdY = 350;
+initScene();
+
+bird.y = GS.menuBirdY;
+bird.velocityY = 0;
+bird.angle = 0;
 
         return true;
     }
@@ -169,6 +292,7 @@ GS.showGo = false;
             flashButton(shopBackButton);
 
             GS.showShop = false;
+            layoutActiveScreen();
 
             return true;
         }
@@ -199,6 +323,9 @@ GS.resetSuccessTimer = 120;
 settingsYesButton.setHoverState(false);
 settingsNoButton.setHoverState(false);
 
+settingsYesButton.setPressed(false);
+settingsNoButton.setPressed(false);
+
     return true;
 }
 
@@ -214,6 +341,8 @@ settingsNoButton.setHoverState(false);
 
     settingsYesButton.setHoverState(false);
     settingsNoButton.setHoverState(false);
+    settingsYesButton.setPressed(false);
+settingsNoButton.setPressed(false);
 
         return true;
     }
@@ -230,9 +359,23 @@ settingsNoButton.setHoverState(false);
 
         GS.settings.music = !GS.settings.music;
 
-        setAudioSettings(GS.settings);
+       setAudioSettings(GS.settings);
 
-        saveSettings(GS.settings);
+saveSettings(GS.settings);
+
+if (GS.settings.music) {
+
+    if (!GS.menuMusicPlaying) {
+        playMenuMusic();
+        GS.menuMusicPlaying = true;
+    }
+
+} else {
+
+    stopMenuMusic();
+    GS.menuMusicPlaying = false;
+
+}
 
         return true;
     }
@@ -291,6 +434,7 @@ settingsNoButton.setHoverState(false);
         difficulties[previous] as any;
 
     saveSettings(GS.settings);
+    GS.currentDifficulty = GS.settings.difficulty;
 
     return true;
 }
@@ -319,6 +463,7 @@ if (difficultyRightButton.contains(mouseX, mouseY)) {
         difficulties[next] as any;
 
     saveSettings(GS.settings);
+    GS.currentDifficulty = GS.settings.difficulty;
 
     return true;
 }
@@ -331,9 +476,12 @@ if (difficultyRightButton.contains(mouseX, mouseY)) {
 
         flashButton(settingsBackButton);
 
-        GS.showSettingsMenu = false;
+       GS.showSettingsMenu = false;
+       layoutActiveScreen();
 
-        GS.settingsMenuState = null;
+GS.settingsMenuState = null;
+
+GS.showResetConfirmation = false;
 
         return true;
     }
@@ -368,6 +516,7 @@ if (GS.showStatistics) {
         flashButton(statisticsBackButton);
 
         GS.showStatistics = false;
+        layoutActiveScreen();
 
         return true;
     }
@@ -407,8 +556,11 @@ if (GS.showStatistics) {
 
         flashButton(shopButton);
 
-        GS.showShop = true;
-        GS.selectedShopSkin = 0;
+       if (!GS.showShop) {
+    GS.showShop = true;
+    GS.selectedShopSkin = 0;
+    layoutActiveScreen();
+}
 
         return true;
     }
@@ -423,11 +575,17 @@ if (GS.showStatistics) {
 
         flashButton(statsButton);
 
-        GS.showStatistics = true;
+        if (!GS.showStatistics) {
 
-GS.statisticsPopupScale = 0.9;
-GS.statisticsPopupAlpha = 0;
-GS.statisticsPopupOpening = true;
+    GS.statisticsPopupScale = 0.9;
+    GS.statisticsPopupAlpha = 0;
+    GS.statisticsPopupOpening = true;
+
+    GS.showStatistics = true;
+    layoutActiveScreen();
+}
+
+
 
         return true;
     }
@@ -450,6 +608,25 @@ GS.statisticsPopupOpening = true;
     return true;
 }
 
+if (
+    !GS.countdownRunning &&
+    !GS.showGo &&
+    !GS.showShop &&
+    !GS.showStatistics &&
+    !GS.showSettingsMenu &&
+    loginButton.contains(mouseX, mouseY)
+) {
+    playButtonClick();
+
+    flashButton(loginButton);
+
+    setTimeout(() => {
+        openLoginScreen();
+        loginButton.setPressed(false);
+    }, 120);
+
+    return true;
+}
    
    return false;
     

@@ -32,6 +32,7 @@ export const isIPad =
     (navigator.platform === "MacIntel" &&
         navigator.maxTouchPoints > 1);
 
+
 export const GS = {
 
     score: 0,
@@ -82,6 +83,29 @@ statisticsPopupOpening: false,
     statisticsAnimation: 0,
     statisticsOpening: false,
     statisticsClosing: false,
+
+
+    // =========================
+// Online Account
+// =========================
+
+showLoginScreen: false,
+loginMode: "login" as "login" | "signup",
+
+loginEmail: "",
+loginPassword: "",
+loginOnlineId: "",
+
+loginMessage: "",
+loginLoading: false,
+
+onlineUserId: null as string | null,
+onlineId: null as string | null,
+
+loginField: "email" as "email" | "password" | "onlineId",
+
+
+
 
     // =========================
     // Shop

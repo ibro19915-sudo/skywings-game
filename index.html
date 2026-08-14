@@ -6,6 +6,14 @@
 <title>Sky Wings</title>
 
 <link rel="stylesheet" href="style.css">
+<!-- Resolve the Supabase package import when the game is served as static files. -->
+<script type="importmap">
+{
+  "imports": {
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+  }
+}
+</script>
 </head>
 <body>
 <canvas id = "gameCanvas" width = "480" height="640"></canvas>
@@ -14,10 +22,6 @@
 
 
 </body>
-
-
-
-
 
 
 

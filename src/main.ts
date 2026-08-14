@@ -6,8 +6,9 @@ import { startGameLoop } from "./gameloop.js";
 import { loadSettings } from "./settings.js";
 import { setAudioSettings } from "./audio.js";
 
+
 // Initialize scene and start everything
-initScene(GS.currentSkinIndex);
+initScene();
 
 // Load saved settings immediately
 GS.settings = loadSettings();

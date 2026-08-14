@@ -1,4 +1,4 @@
-
+import { DefaultLayout, PhoneLayout } from "./layout.js";
 import { getSkyColor } from "./colors.js";
 import type { Difficulty } from "./difficulty.js";
 

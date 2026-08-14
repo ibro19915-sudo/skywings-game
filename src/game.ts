@@ -6,8 +6,15 @@ import { Clouds } from "./clouds.js";
 
 import { showSkinUnlock } from "./achievements.js";
 import { Button } from "./button.js";
-import { isPhone, isTouchDevice } from "./gameState.js";
+import {
+    GS,
+    isPhone,
+    isTouchDevice,
+    isIPad
+} from "./gameState.js";
 import { loadImage } from "./imageLoader.js";
+
+
 
 
 export const canvas = document.getElementById("gameCanvas") as HTMLCanvasElement;
@@ -47,6 +54,9 @@ export const pauseButton =
     );
 export const statsButton = new Button(0, 0, 0, 0, "STATS", "📊");
 export const settingsButton = new Button(0, 0, 0, 0, "SETTINGS", "⚙");
+
+// login button
+export const loginButton = new Button(0, 0, 0, 0, "LOGIN", "👤");
 // statistics Back button
 export const statisticsBackButton =
     new Button(
@@ -119,9 +129,20 @@ export const settingsYesButton =
 export const settingsNoButton =
     new Button(0, 0, 0, 0, "NO", "✖");
 
+
+//login section back button 
+export const backButton = new Button(
+    canvas.width / 2 - 100,
+    canvas.height - 100,
+    200,
+    60,
+    "Back",
+    "←"
+);
+
 export const bird = new Bird();
 export let PLAYABLE_HEIGHT = 240;
-export function initScene(currentSkinIndex: number) {
+export function initScene() {
     
     ground = new Ground();
     clouds = new Clouds();
@@ -144,211 +165,416 @@ export function initScene(currentSkinIndex: number) {
 
    
 }
-function layoutMenuButtons(): void {
+const DESKTOP_MENU_BUTTON_WIDTH = 260;
+const DESKTOP_MENU_BUTTON_HEIGHT = 60;
+const DESKTOP_MENU_BUTTON_SPACING = 18;
+const DESKTOP_LAYOUT_PANEL_WIDTH = 220;
+const DESKTOP_LAYOUT_PANEL_HEIGHT = 60;
+const DESKTOP_SETTINGS_VALUE_WIDTH = 140;
+const DESKTOP_SETTINGS_VALUE_HEIGHT = 55;
+const DESKTOP_SETTINGS_DIFFICULTY_WIDTH = 150;
+const DESKTOP_SETTINGS_DIFFICULTY_HEIGHT = 55;
+const DESKTOP_SETTINGS_ARROW_SIZE = 40;
+const DESKTOP_RESTART_WIDTH = 240;
+const DESKTOP_RESTART_HEIGHT = 60;
+const DESKTOP_PAUSE_BUTTON_TOUCH_WIDTH = 56;
+const DESKTOP_PAUSE_BUTTON_TOUCH_HEIGHT = 56;
+const DESKTOP_PAUSE_BUTTON_TOP_PADDING = 20;
+const DESKTOP_PAUSE_BUTTON_RIGHT_PADDING = 20;
+const DESKTOP_PAUSE_BUTTON_PHONE_WIDTH = 60;
+const DESKTOP_PAUSE_BUTTON_PHONE_HEIGHT = 60;
+const DESKTOP_PAUSE_BUTTON_PHONE_TOP_PADDING = 24;
+const DESKTOP_PAUSE_BUTTON_PHONE_RIGHT_PADDING = 24;
+const TABLET_MAIN_MENU_BUTTON_WIDTH = 320;
+const TABLET_MAIN_MENU_BUTTON_HEIGHT = 72;
+const TABLET_MAIN_MENU_BUTTON_SPACING = 22;
+const TABLET_RESTART_WIDTH = 300;
+const TABLET_RESTART_HEIGHT = 70;
+const TABLET_PAUSE_BUTTON_WIDTH = 70;
+const TABLET_PAUSE_BUTTON_HEIGHT = 70;
+const TABLET_PAUSE_BUTTON_RIGHT_PADDING = 30;
+const TABLET_PAUSE_BUTTON_TOP_PADDING = 30;
+const PHONE_MAIN_MENU_BUTTON_WIDTH_RATIO = 0.55;
+const PHONE_MAIN_MENU_BUTTON_HEIGHT = 60;
+const PHONE_MAIN_MENU_BUTTON_SPACING = 18;
 
-    const buttonWidth = Math.min(canvas.width * 0.42, 260);
-    const buttonHeight = Math.min(canvas.height * 0.085, 70);
+function setButtonBounds(button: Button, width: number, height: number, x: number, y: number): void {
+    button.width = width;
+    button.height = height;
+    button.x = x;
+    button.y = y;
+}
 
-    const spacing = buttonHeight + 18;
+function centerButton(button: Button, width: number, height: number, y: number): void {
+    setButtonBounds(button, width, height, (canvas.width - width) / 2, y);
+}
 
-    const startY = canvas.height * 0.32;
+function layoutMainMenuButtons(
+    buttons: Button[],
+    width: number,
+    height: number,
+    spacing: number,
+    startY: number,
+    centerX: number
+): void {
+    buttons.forEach((button, index) => {
+        button.x = centerX;
+        button.y = startY + index * (height + spacing);
+        button.width = width;
+        button.height = height;
 
+        if (!button.entrancePlayed && button.delay === 0) {
+            button.delay = index * 8;
+        }
+    });
+}
+
+function layoutDesktopMainMenu(): void {
+    const buttonWidth = Math.min(canvas.width * 0.42, DESKTOP_MENU_BUTTON_WIDTH);
+    const buttonHeight = Math.min(canvas.height * 0.085, DESKTOP_MENU_BUTTON_HEIGHT);
+    const spacing = DESKTOP_MENU_BUTTON_SPACING;
+    const startY = 170;
     const centerX = (canvas.width - buttonWidth) / 2;
 
-    const buttons = [
-        playButton,
-        shopButton,
-        statsButton,
-        settingsButton
-    ];
-
-    buttons.forEach((button, index) => {
-
-        button.x = centerX;
-        button.y = startY + index * spacing;
-        button.width = buttonWidth;
-        button.height = buttonHeight;
-        if (!button.entrancePlayed) {
-    button.delay = index * 8;
-    button.currentOffsetY = 30;
+    layoutMainMenuButtons(
+       [
+    playButton,
+    shopButton,
+    statsButton,
+    settingsButton,
+    loginButton
+],
+        buttonWidth,
+        buttonHeight,
+        spacing,
+        startY,
+        centerX
+    );
 }
+
+function layoutPhoneMainMenu(): void {
+    const buttonWidth = canvas.width * PHONE_MAIN_MENU_BUTTON_WIDTH_RATIO;
+    const startY = canvas.height * 0.42;
+    const centerX = (canvas.width - buttonWidth) / 2;
+
+    layoutMainMenuButtons(
+       [
+    playButton,
+    shopButton,
+    statsButton,
+    settingsButton,
+    loginButton
+],
+        buttonWidth,
+        PHONE_MAIN_MENU_BUTTON_HEIGHT,
+        PHONE_MAIN_MENU_BUTTON_SPACING,
+        startY,
+        centerX
+    );
+}
+
+function layoutTabletMainMenu(): void {
+    const centerX = (canvas.width - TABLET_MAIN_MENU_BUTTON_WIDTH) / 2;
+    const startY = canvas.height * 0.28;
+
+    layoutMainMenuButtons(
+        [
+    playButton,
+    shopButton,
+    statsButton,
+    settingsButton,
+    loginButton
+],
+        TABLET_MAIN_MENU_BUTTON_WIDTH,
+        TABLET_MAIN_MENU_BUTTON_HEIGHT,
+        TABLET_MAIN_MENU_BUTTON_SPACING,
+        startY,
+        centerX
+    );
+}
+
+function layoutDesktopShop(): void {
+    shopPrevButton.x = canvas.width * 0.18;
+    shopPrevButton.y = canvas.height * 0.38;
+    shopPrevButton.width = 70;
+    shopPrevButton.height = 60;
+
+    shopNextButton.x = canvas.width * 0.68;
+    shopNextButton.y = canvas.height * 0.38;
+    shopNextButton.width = 70;
+    shopNextButton.height = 60;
+
+    centerButton(shopActionButton, DESKTOP_LAYOUT_PANEL_WIDTH, DESKTOP_LAYOUT_PANEL_HEIGHT, canvas.height * 0.68);
+    centerButton(shopBackButton, DESKTOP_LAYOUT_PANEL_WIDTH, DESKTOP_LAYOUT_PANEL_HEIGHT, canvas.height * 0.80);
+}
+
+function layoutPhoneShop(): void {
+    layoutDesktopShop();
+}
+
+function layoutTabletShop(): void {
+    layoutDesktopShop();
+}
+
+function layoutDesktopSettings(): void {
+    const valueX = canvas.width * 0.57;
+
+    setButtonBounds(settingsMusicButton, DESKTOP_SETTINGS_VALUE_WIDTH, DESKTOP_SETTINGS_VALUE_HEIGHT, valueX, canvas.height * 0.26);
+    setButtonBounds(settingsSoundButton, DESKTOP_SETTINGS_VALUE_WIDTH, DESKTOP_SETTINGS_VALUE_HEIGHT, valueX, canvas.height * 0.37);
+    setButtonBounds(settingsFPSButton, DESKTOP_SETTINGS_VALUE_WIDTH, DESKTOP_SETTINGS_VALUE_HEIGHT, valueX, canvas.height * 0.48);
+
+    setButtonBounds(settingsDifficultyButton, DESKTOP_SETTINGS_DIFFICULTY_WIDTH, DESKTOP_SETTINGS_DIFFICULTY_HEIGHT, valueX, canvas.height * 0.59);
+
+    setButtonBounds(difficultyLeftButton, DESKTOP_SETTINGS_ARROW_SIZE, DESKTOP_SETTINGS_ARROW_SIZE, settingsDifficultyButton.x - 48, settingsDifficultyButton.y + 8);
+    setButtonBounds(difficultyRightButton, DESKTOP_SETTINGS_ARROW_SIZE, DESKTOP_SETTINGS_ARROW_SIZE, settingsDifficultyButton.x + settingsDifficultyButton.width + 8, settingsDifficultyButton.y + 8);
+
+    centerButton(settingsResetButton, DESKTOP_LAYOUT_PANEL_WIDTH, DESKTOP_LAYOUT_PANEL_HEIGHT, canvas.height * 0.72);
+    setButtonBounds(settingsYesButton, DESKTOP_SETTINGS_DIFFICULTY_WIDTH, DESKTOP_SETTINGS_DIFFICULTY_HEIGHT, canvas.width * 0.30, canvas.height * 0.73);
+    setButtonBounds(settingsNoButton, DESKTOP_SETTINGS_DIFFICULTY_WIDTH, DESKTOP_SETTINGS_DIFFICULTY_HEIGHT, canvas.width * 0.55, canvas.height * 0.73);
+    centerButton(settingsBackButton, DESKTOP_LAYOUT_PANEL_WIDTH, DESKTOP_LAYOUT_PANEL_HEIGHT, canvas.height * 0.88);
+}
+
+function layoutPhoneSettings(): void {
+
+    const labelX = canvas.width * 0.60;
+
+    const buttonWidth = canvas.width * 0.36;
+    const buttonHeight = 58;
+
+    setButtonBounds(
+        settingsMusicButton,
+        buttonWidth,
+        buttonHeight,
+        labelX,
+        canvas.height * 0.24
+    );
+
+    setButtonBounds(
+        settingsSoundButton,
+        buttonWidth,
+        buttonHeight,
+        labelX,
+        canvas.height * 0.36
+    );
+
+    setButtonBounds(
+        settingsFPSButton,
+        buttonWidth,
+        buttonHeight,
+        labelX,
+        canvas.height * 0.48
+    );
+
+    const arrowSize = 48;
+const gap = 8;
+
+const totalWidth =
+    arrowSize +
+    gap +
+    buttonWidth +
+    gap +
+    arrowSize;
+
+const groupX = settingsMusicButton.x - 102;
+const groupY = canvas.height * 0.60;
+
+setButtonBounds(
+    difficultyLeftButton,
+    arrowSize,
+    arrowSize,
+    groupX,
+    groupY + 5
+);
+
+setButtonBounds(
+    settingsDifficultyButton,
+    buttonWidth,
+    buttonHeight,
+    groupX + arrowSize + gap,
+    groupY
+);
+
+setButtonBounds(
+    difficultyRightButton,
+    arrowSize,
+    arrowSize,
+    groupX + arrowSize + gap + buttonWidth + gap,
+    groupY + 5
+);
+
    
 
+    centerButton(
+        settingsResetButton,
+        canvas.width * 0.55,
+        60,
+        canvas.height * 0.74
+    );
 
-    });
-    const smallButtonWidth = 70;
-const smallButtonHeight = 60;
-
-shopPrevButton.x = canvas.width * 0.18;
-shopPrevButton.y = canvas.height * 0.38;
-shopPrevButton.width = smallButtonWidth;
-shopPrevButton.height = smallButtonHeight;
-
-shopNextButton.x = canvas.width * 0.68;
-shopNextButton.y = canvas.height * 0.38;
-shopNextButton.width = smallButtonWidth;
-shopNextButton.height = smallButtonHeight;
-
-shopActionButton.x = (canvas.width - 220) / 2;
-shopActionButton.y = canvas.height * 0.68;
-shopActionButton.width = 220;
-shopActionButton.height = 60;
-
-shopBackButton.x = (canvas.width - 220) / 2;
-shopBackButton.y = canvas.height * 0.80;
-shopBackButton.width = 220;
-shopBackButton.height = 60;
-
-//settings buttons 
-const settingsWidth = 140;
-const settingsHeight = 55;
-
-const valueX = canvas.width * 0.57;
-
-
-
-settingsMusicButton.x = valueX;
-settingsMusicButton.y = canvas.height * 0.26;
-settingsMusicButton.width = settingsWidth;
-settingsMusicButton.height = settingsHeight;
-
-settingsSoundButton.x = valueX;
-settingsSoundButton.y = canvas.height * 0.37;
-settingsSoundButton.width = settingsWidth;
-settingsSoundButton.height = settingsHeight;
-
-settingsFPSButton.x = valueX;
-settingsFPSButton.y = canvas.height * 0.48;
-settingsFPSButton.width = settingsWidth;
-settingsFPSButton.height = settingsHeight;
-
-settingsDifficultyButton.width = 150;
-settingsDifficultyButton.height = 55;
-
-settingsDifficultyButton.x = valueX ;
-settingsDifficultyButton.y = canvas.height * 0.59;
-
-difficultyLeftButton.width = 40;
-difficultyLeftButton.height = 40;
-
-difficultyLeftButton.x =
-    settingsDifficultyButton.x - 48;
-
-difficultyLeftButton.y =
-    settingsDifficultyButton.y + 8;
-
-difficultyRightButton.width = 40;
-difficultyRightButton.height = 40;
-
-difficultyRightButton.x =
-    settingsDifficultyButton.x +
-    settingsDifficultyButton.width + 8;
-
-difficultyRightButton.y =
-    settingsDifficultyButton.y + 8;
-
-
-
-
-
-
-
-settingsResetButton.x = (canvas.width - 220) / 2;
-settingsResetButton.y = canvas.height * 0.72;
-settingsResetButton.width = 220;
-settingsResetButton.height = 60;
-
-settingsYesButton.x = canvas.width * 0.30;
-settingsYesButton.y = canvas.height * 0.73;
-settingsYesButton.width = 150;
-settingsYesButton.height = 55;
-
-settingsNoButton.x = canvas.width * 0.55;
-settingsNoButton.y = canvas.height * 0.73;
-settingsNoButton.width = 150;
-settingsNoButton.height = 55;
-
-settingsBackButton.x = (canvas.width - 220) / 2;
-settingsBackButton.y = canvas.height * 0.88;
-settingsBackButton.width = 220;
-settingsBackButton.height = 60;
-
-statisticsBackButton.x =
-    (canvas.width - statisticsBackButton.width) / 2;
-
-statisticsBackButton.y =
-    canvas.height * 0.78;
-
-
-
-
-pauseContinueButton.width = 240;
-pauseContinueButton.height = 60;
-
-pauseContinueButton.x =
-    (canvas.width - pauseContinueButton.width) / 2;
-
-pauseContinueButton.y =
-    canvas.height * 0.46;
-
-
-pauseMainMenuButton.width = 240;
-pauseMainMenuButton.height = 60;
-
-pauseMainMenuButton.x =
-    (canvas.width - pauseMainMenuButton.width) / 2;
-
-pauseMainMenuButton.y =
-    canvas.height * 0.58;
-
-if (!isTouchDevice) {
-
-    pauseButton.width = 0;
-    pauseButton.height = 0;
-
-} else {
-
-    pauseButton.width = 56;
-    pauseButton.height = 56;
-
-    // Top-right corner
-    pauseButton.x = canvas.width - pauseButton.width - 20;
-    pauseButton.y = 20;
-
-}
-if (isTouchDevice) {
-
-    pauseButton.width = 60;
-    pauseButton.height = 60;
-
-    const topPadding = 24;
-    const rightPadding = 24;
-
-    pauseButton.x =
-        canvas.width -
-        pauseButton.width -
-        rightPadding;
-
-    pauseButton.y = topPadding;
-}
-restartButton.width = 240;
-restartButton.height = 60;
-
-restartButton.x =
-    (canvas.width - restartButton.width) / 2;
-
-restartButton.y =
-    canvas.height * 0.78;
-
+    centerButton(
+        settingsBackButton,
+        canvas.width * 0.55,
+        60,
+        canvas.height * 0.87
+    );
 }
 
+function layoutTabletSettings(): void {
+    layoutDesktopSettings();
+}
+
+function layoutDesktopStatistics(): void {
+    statisticsBackButton.x = (canvas.width - statisticsBackButton.width) / 2;
+    statisticsBackButton.y = canvas.height * 0.78;
+}
+
+function layoutPhoneStatistics(): void {
+   layoutDesktopStatistics();
+}
+
+function layoutTabletStatistics(): void {
+    layoutDesktopStatistics();
+}
+
+function layoutDesktopPause(): void {
+    centerButton(pauseContinueButton, DESKTOP_RESTART_WIDTH, DESKTOP_RESTART_HEIGHT, canvas.height * 0.46);
+    centerButton(pauseMainMenuButton, DESKTOP_RESTART_WIDTH, DESKTOP_RESTART_HEIGHT, canvas.height * 0.58);
+
+    if (!isTouchDevice) {
+        pauseButton.width = 0;
+        pauseButton.height = 0;
+    } else {
+        pauseButton.width = DESKTOP_PAUSE_BUTTON_TOUCH_WIDTH;
+        pauseButton.height = DESKTOP_PAUSE_BUTTON_TOUCH_HEIGHT;
+        pauseButton.x = canvas.width - pauseButton.width - DESKTOP_PAUSE_BUTTON_RIGHT_PADDING;
+        pauseButton.y = DESKTOP_PAUSE_BUTTON_TOP_PADDING;
+    }
+
+    if (isTouchDevice) {
+        pauseButton.width = DESKTOP_PAUSE_BUTTON_PHONE_WIDTH;
+        pauseButton.height = DESKTOP_PAUSE_BUTTON_PHONE_HEIGHT;
+        pauseButton.x = canvas.width - pauseButton.width - DESKTOP_PAUSE_BUTTON_PHONE_RIGHT_PADDING;
+        pauseButton.y = DESKTOP_PAUSE_BUTTON_PHONE_TOP_PADDING;
+    }
+
+    centerButton(restartButton, DESKTOP_RESTART_WIDTH, DESKTOP_RESTART_HEIGHT, canvas.height * 0.84);
+}
+
+function layoutPhonePause(): void {
+    layoutDesktopPause();
+    const centerX = (canvas.width - canvas.width * PHONE_MAIN_MENU_BUTTON_WIDTH_RATIO) / 2;
+    setButtonBounds(restartButton, canvas.width * PHONE_MAIN_MENU_BUTTON_WIDTH_RATIO, DESKTOP_RESTART_HEIGHT, centerX, canvas.height * 0.80);
+}
+
+function layoutTabletPause(): void {
+    layoutDesktopPause();
+    centerButton(restartButton, TABLET_RESTART_WIDTH, TABLET_RESTART_HEIGHT, canvas.height * 0.82);
+    setButtonBounds(pauseButton, TABLET_PAUSE_BUTTON_WIDTH, TABLET_PAUSE_BUTTON_HEIGHT, canvas.width - TABLET_PAUSE_BUTTON_WIDTH - TABLET_PAUSE_BUTTON_RIGHT_PADDING, TABLET_PAUSE_BUTTON_TOP_PADDING);
+}
+
+function layoutGameplay(): void {
+    if (isIPad) {
+        setButtonBounds(
+            pauseButton,
+            TABLET_PAUSE_BUTTON_WIDTH,
+            TABLET_PAUSE_BUTTON_HEIGHT,
+            canvas.width - TABLET_PAUSE_BUTTON_WIDTH - TABLET_PAUSE_BUTTON_RIGHT_PADDING,
+            TABLET_PAUSE_BUTTON_TOP_PADDING
+        );
+    } else if (isTouchDevice) {
+        setButtonBounds(
+            pauseButton,
+            DESKTOP_PAUSE_BUTTON_PHONE_WIDTH,
+            DESKTOP_PAUSE_BUTTON_PHONE_HEIGHT,
+            canvas.width - DESKTOP_PAUSE_BUTTON_PHONE_WIDTH - DESKTOP_PAUSE_BUTTON_PHONE_RIGHT_PADDING,
+            DESKTOP_PAUSE_BUTTON_PHONE_TOP_PADDING
+        );
+    } else {
+        // Hide pause button on laptop/desktop
+        pauseButton.width = 0;
+        pauseButton.height = 0;
+    }
+}
+
+export function layoutActiveScreen(): void {
+    if (GS.showShop) {
+        if (isIPad) {
+            layoutTabletShop();
+        } else if (isTouchDevice) {
+            layoutPhoneShop();
+        } else {
+            layoutDesktopShop();
+        }
+
+        return;
+    }
+
+    if (GS.showSettingsMenu) {
+        if (isIPad) {
+            layoutTabletSettings();
+        } else if (isTouchDevice) {
+            layoutPhoneSettings();
+        } else {
+            layoutDesktopSettings();
+        }
+
+        return;
+    }
+
+    if (GS.showStatistics) {
+        if (isIPad) {
+            layoutTabletStatistics();
+        } else if (isTouchDevice) {
+            layoutPhoneStatistics();
+        } else {
+            layoutDesktopStatistics();
+        }
+
+        return;
+    }
+
+    // PAUSED / GAME OVER
+    if (GS.paused || GS.gameOver) {
+        if (isIPad) {
+            layoutTabletPause();
+        } else if (isTouchDevice) {
+            layoutPhonePause();
+        } else {
+            layoutDesktopPause();
+        }
+
+        return;
+    }
+
+    // ACTIVE GAMEPLAY
+    if (GS.gameStarted) {
+        layoutGameplay();
+        return;
+    }
+
+    // MAIN MENU
+    if (isIPad) {
+        layoutTabletMainMenu();
+    } else if (isTouchDevice) {
+        layoutPhoneMainMenu();
+    } else {
+        layoutDesktopMainMenu();
+    }
+}
 
 export function resizeCanvas(): void {
-    if (isPhone) {
+    if (isTouchDevice && !isIPad) {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+
         canvas.style.width = `${window.innerWidth}px`;
         canvas.style.height = `${window.innerHeight}px`;
+    } else {
+        canvas.width = 480;
+        canvas.height = 640;
+
+        canvas.style.width = "480px";
+        canvas.style.height = "640px";
     }
 
     if (ground) {
@@ -357,7 +583,7 @@ export function resizeCanvas(): void {
         ground.y = canvas.height - ground.height;
     }
 
-    layoutMenuButtons();
+    layoutActiveScreen();
 }
 
 export function unlockBirdByPipes(statistics: any) {
@@ -376,4 +602,3 @@ export function unlockBirdByPipes(statistics: any) {
         showSkinUnlock("DIAMOND");
     }
 }
-const shopUnlockRequirements = [0, 25, 50, 100];

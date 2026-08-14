@@ -1,3 +1,4 @@
+import { DefaultLayout, PhoneLayout } from "./layout.js";
 import { Bird } from "./bird.js";
 import { Ground } from "./ground.js";
 import { Clouds } from "./clouds.js";
@@ -9,14 +10,15 @@ import { drawPipes } from "./pipeManager.js";
 import { GS } from "./gameState.js";
 // Buttons 
 import {
-    playButton,
-    shopButton,
-    statsButton,
-    settingsButton,
-    pauseButton,
-    pauseContinueButton,
-    restartButton,
-    pauseMainMenuButton
+playButton,
+shopButton,
+statsButton,
+settingsButton,
+loginButton,
+pauseButton,
+pauseContinueButton,
+restartButton,
+pauseMainMenuButton
 } from "./game.js";
 const shopUnlockRequirements = [0, 50, 150, 300];
 
@@ -61,94 +63,75 @@ export function drawGameOver(
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
 
-    ctx.font = "54px Arial";
-    ctx.fillText("GAME OVER", canvas.width / 2, 80);
+   
+const titleY = canvas.height * 0.08;
 
-    ctx.font = "30px Arial";
-    ctx.fillText(
-        "Score: " + score,
-        canvas.width / 2,
-        150
-    );
+const scoreY = canvas.height * 0.16;
+const bestScoreY = canvas.height * 0.21;
 
-    ctx.fillText(
-        "Best Score: " + bestScore,
-        canvas.width / 2,
-       190
-    );
+const highScoreY = canvas.height * 0.27;
 
-    if (newRecord) {
-        ctx.fillStyle = "#ffd700";
-        ctx.font = "36px Arial";
+const achievementTitleY = canvas.height * 0.36;
+const achievementTextY = canvas.height * 0.41;
 
-        ctx.fillText(
-            "NEW HIGH SCORE!",
-            canvas.width /2,
-          240
-        );
+const unlockTitleY = canvas.height * 0.49;
+const unlockTextY = canvas.height * 0.54;
 
-    }
+ctx.font = "54px Arial";
+ctx.fillStyle = "white";
+ctx.fillText("GAME OVER", canvas.width / 2, titleY);
 
-    if (achievementText !== "") {
-        ctx.fillStyle = "#FFD700";
-        ctx.font = "24px Arial";
-        ctx.fillText(
-            "NEW ACHIEVEMENT",
-            canvas.width / 2,
-            330
-        );
-        ctx.fillStyle = "white";
-        ctx.font = "22px Arial";
-        ctx.fillText(
-            achievementText,
-            canvas.width / 2,
-            365
-        );
-    }
+ctx.font = "30px Arial";
+ctx.fillText(`Score: ${score}`, canvas.width / 2, scoreY);
 
-    let medal: HTMLImageElement | null = null;
+ctx.fillText(`Best Score: ${bestScore}`, canvas.width / 2, bestScoreY);
 
-    if (score >= 50) {
-        medal = diamondMedal;
-    }
-    else if (score >= 30) {
-        medal = goldMedal;
-    }
-    else if (score >= 20) {
-        medal = silverMedal;
-    }
-    else if (score >= 10) {
-        medal = bronzeMedal;
-    }
+if (newRecord) {
+    ctx.fillStyle = "#FFD700";
+    ctx.font = "36px Arial";
+    ctx.fillText("NEW HIGH SCORE!", canvas.width / 2, highScoreY);
+}
 
-    if (medal) {
-       ctx.drawImage(
-        medal,
-        canvas.width / 2 - 32,
-        475,
-        64,
-        64
-    );
-    }
+if (achievementText !== "") {
+    ctx.fillStyle = "#FFD700";
+    ctx.font = "24px Arial";
+    ctx.fillText("NEW ACHIEVEMENT", canvas.width / 2, achievementTitleY);
 
-    if (skinUnlockText !== "") {
-        ctx.fillStyle = "#FFD700";
-        ctx.font = "24px Arial";
-        ctx.fillText(
-            "NEW BIRD UNLOCKED",
-            canvas.width / 2,
-            430
-        );
-        ctx.fillStyle = "white";
-        ctx.font = "22px Arial";
-        ctx.fillText(
-            skinUnlockText,
-            canvas.width / 2,
-            465
-        );
-    }
+    ctx.fillStyle = "white";
+    ctx.font = "22px Arial";
+    ctx.fillText(achievementText, canvas.width / 2, achievementTextY);
+}
 
-  restartButton.draw(ctx);
+if (skinUnlockText !== "") {
+    ctx.fillStyle = "#FFD700";
+    ctx.font = "24px Arial";
+    ctx.fillText("NEW BIRD UNLOCKED", canvas.width / 2, unlockTitleY);
+
+    ctx.fillStyle = "white";
+    ctx.font = "22px Arial";
+    ctx.fillText(skinUnlockText, canvas.width / 2, unlockTextY);
+}
+
+let medal: HTMLImageElement | null = null;
+
+if (score >= 50) medal = diamondMedal;
+else if (score >= 30) medal = goldMedal;
+else if (score >= 20) medal = silverMedal;
+else if (score >= 10) medal = bronzeMedal;
+
+if (medal) {
+    const medalSize = 64;
+
+    ctx.drawImage(
+    medal,
+    canvas.width / 2 - medalSize / 2,
+    canvas.height * 0.63,
+    medalSize,
+    medalSize
+);
+}
+
+restartButton.draw(ctx);
 
 
     ctx.restore();
@@ -224,6 +207,11 @@ export function drawMenu(
     score: number,
     currentDifficulty: Difficulty
 ): void {
+
+    const layout =
+        GS.isPhone
+            ? PhoneLayout
+            : DefaultLayout;
    ctx.fillStyle = getSkyColor(score);
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -260,15 +248,33 @@ ctx.fillRect(0, 0, canvas.width, canvas.height);
         return;
     }
 
-    bird.y = menuBirdY;
-    bird.draw(ctx);
-    ground.update(GS.delta);
-    ground.draw(ctx);
+   ground.update(GS.delta);
+ground.draw(ctx);
 
     ctx.fillStyle = "white";
     ctx.font = "56px Arial";
     ctx.textAlign = "center";
-    ctx.fillText("SKY WINGS", canvas.width / 2, 70);
+    const titleY = GS.isPhone
+    ? canvas.height * 0.09
+    : layout.menu.titleY;
+
+ctx.fillText(
+    "SKY WINGS",
+    canvas.width / 2,
+    titleY
+);
+
+// Online account ID
+if (GS.onlineId) {
+    ctx.fillStyle = "#FFD700";
+    ctx.font = GS.isPhone ? "18px Arial" : "22px Arial";
+
+    ctx.fillText(
+        GS.onlineId,
+        canvas.width / 2,
+        titleY + (GS.isPhone ? 35 : 40)
+    );
+}
 
     
 
@@ -276,6 +282,7 @@ ctx.fillRect(0, 0, canvas.width, canvas.height);
 shopButton.draw(ctx);
 statsButton.draw(ctx);
 settingsButton.draw(ctx);
+loginButton.draw(ctx);
 
     
 }
@@ -456,128 +463,203 @@ export function drawShop(
 
     const unlocked =
         statistics.totalPipes >= requiredPipes;
-    if (owned) {
+    // Mobile/Desktop font sizes
+const titleFont =
+    GS.isPhone ? "22px Arial" : "32px Arial";
+
+const infoFont =
+    GS.isPhone ? "18px Arial" : "26px Arial";
+
+if (owned) {
+
+    ctx.font = titleFont;
     ctx.fillStyle = "#00FF00";
+
     ctx.fillText(
         "OWNED",
         canvas.width / 2,
         300
     );
+
 }
 else if (unlocked && statistics.coins >= price) {
-  ctx.font = "30px Arial";
-ctx.fillStyle = "#FFD700";
-ctx.strokeStyle = "black";
-ctx.lineWidth = 4;
 
-ctx.strokeText("UNLOCKED", canvas.width / 2, 300);
-ctx.fillText("UNLOCKED", canvas.width / 2, 300);
+    ctx.font = titleFont;
+    ctx.fillStyle = "#FFD700";
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 4;
 
-ctx.font = "26px Arial";
+    ctx.strokeText(
+        "UNLOCKED",
+        canvas.width / 2,
+        300
+    );
 
-ctx.strokeText(
-    `Price: ${price} Coins`,
-    canvas.width / 2,
-    340
-);
-ctx.fillText(
-    `Price: ${price} Coins`,
-    canvas.width / 2,
-    340
-);
-
-ctx.strokeText(
-    "Press SPACE to Buy",
-    canvas.width / 2,
-    380
-);
-ctx.fillText(
-    "Press SPACE to Buy",
-    canvas.width / 2,
-    380
-);
-
-
-}
-else if (unlocked && statistics.coins < price) {
-    ctx.fillStyle = "yellow";
     ctx.fillText(
         "UNLOCKED",
         canvas.width / 2,
         300
     );
 
-   ctx.fillStyle = "#FFD700";
-ctx.strokeStyle = "black";
-ctx.lineWidth = 4;
+    ctx.font = infoFont;
 
-ctx.strokeText(
-    `Need ${price} Coins`,
-    canvas.width / 2,
-    340
-);
+    ctx.strokeText(
+        `Price: ${price} Coins`,
+        canvas.width / 2,
+        340
+    );
 
-ctx.fillText(
-    `Need ${price} Coins`,
-    canvas.width / 2,
-    340
-);
+    ctx.fillText(
+        `Price: ${price} Coins`,
+        canvas.width / 2,
+        340
+    );
+
+    ctx.strokeText(
+        "Press SPACE to Buy",
+        canvas.width / 2,
+        380
+    );
+
+    ctx.fillText(
+        "Press SPACE to Buy",
+        canvas.width / 2,
+        380
+    );
+
+}
+else if (unlocked && statistics.coins < price) {
+
+    ctx.font = titleFont;
+    ctx.fillStyle = "#FFD700";
+
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 4;
+
+    ctx.strokeText(
+        "UNLOCKED",
+        canvas.width / 2,
+        300
+    );
+
+    ctx.fillText(
+        "UNLOCKED",
+        canvas.width / 2,
+        300
+    );
+
+    ctx.font = infoFont;
+
+    ctx.strokeText(
+        `Need ${price} Coins`,
+        canvas.width / 2,
+        340
+    );
+
+    ctx.fillText(
+        `Need ${price} Coins`,
+        canvas.width / 2,
+        340
+    );
+
 }
 else {
-   ctx.fillStyle = "#FF4444";
-   ctx.fillStyle = "#FF4444";
-ctx.font = "32px Arial";
-ctx.fillText(
-    "LOCKED",
-    canvas.width / 2,
-    300
-);
 
-ctx.fillStyle = "#FFD700";
-ctx.font = "26px Arial";
-ctx.strokeStyle = "black";
-ctx.lineWidth = 4;
+    ctx.font = titleFont;
+    ctx.fillStyle = "#FF4444";
 
-ctx.strokeText(
-    `Pass ${requiredPipes} Pipes`,
-    canvas.width / 2,
-    340
-);
+    ctx.fillText(
+        "LOCKED",
+        canvas.width / 2,
+        300
+    );
 
-ctx.fillText(
-    `Pass ${requiredPipes} Pipes`,
-    canvas.width / 2,
-    340
-);
+    ctx.fillStyle = "#FFD700";
+    ctx.font = infoFont;
+
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 4;
+
+    ctx.strokeText(
+        `Pass ${requiredPipes} Pipes`,
+        canvas.width / 2,
+        340
+    );
+
+    ctx.fillText(
+        `Pass ${requiredPipes} Pipes`,
+        canvas.width / 2,
+        340
+    );
+
 }
 
   
 
-    // Title
-    ctx.fillStyle = "#FFD700";
-    ctx.font = "50px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("SHOP", canvas.width / 2, 80);
+    // Responsive fonts
+const shopTitleFont =
+    GS.isPhone ? "34px Arial" : "50px Arial";
 
-    // Coins
+const shopCoinsFont =
+    GS.isPhone ? "20px Arial" : "28px Arial";
+
+const shopBirdFont =
+    GS.isPhone ? "26px Arial" : "40px Arial";
+
+// SHOP title
+ctx.fillStyle = "#FFD700";
+ctx.font = shopTitleFont;
+ctx.textAlign = "center";
+ctx.fillText(
+    "SHOP",
+    canvas.width / 2,
+    GS.isPhone ? 70 : 80
+);
+
+// Coins
+ctx.fillStyle = "white";
+ctx.font = shopCoinsFont;
+ctx.fillText(
+    `Coins: ${statistics.coins}`,
+    canvas.width / 2,
+    GS.isPhone ? 125 : 140
+);
+
+// Bird name
+ctx.fillStyle = "#FFD700";
+ctx.font = shopBirdFont;
+ctx.fillText(
+    skin.toUpperCase(),
+    canvas.width / 2,
+    GS.isPhone ? 220 : 240
+);
+
+    
+
+
+}
+
+export function drawLoginScreen(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement
+): void {
+    ctx.fillStyle = "#87CEEB";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
     ctx.fillStyle = "white";
-    ctx.font = "28px Arial";
+    ctx.textAlign = "center";
+
+    ctx.font = "48px Arial";
     ctx.fillText(
-        `Coins: ${statistics.coins}`,
+        "LOGIN",
         canvas.width / 2,
-        140
+        canvas.height * 0.25
     );
 
-    // Current skin
-    ctx.fillStyle = "#FFD700";
-    ctx.font = "40px Arial";
+    ctx.font = "24px Arial";
     ctx.fillText(
-        skin.toUpperCase(),
+        "Login system coming here",
         canvas.width / 2,
-        240
+        canvas.height * 0.40
     );
-
-    ctx.font = "28px Arial";
-
-
 }

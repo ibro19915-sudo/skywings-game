@@ -42,14 +42,15 @@ ctx.fillRect(
     canvas.width,
     canvas.height
 );
-    const panelWidth = 560;
-    const panelHeight = 440;
+    const panelWidth = GS.isPhone ? canvas.width * 0.94 : 560;
+const panelHeight = GS.isPhone
+    ? canvas.height * 0.88
+    : 440;
 
     const panelX =
         (canvas.width - panelWidth) / 2;
 
-    const panelY =
-        (canvas.height - panelHeight) / 2;
+    const panelY = (canvas.height - panelHeight) / 2;
 
       
 
@@ -76,7 +77,10 @@ ctx.translate(
     statisticsBackButton.width / 2;
 
 statisticsBackButton.y =
-    panelY + panelHeight - 65;
+    panelY +
+    panelHeight -
+    statisticsBackButton.height -
+    10;
 
 ctx.fillStyle = "#ffffff";
 
@@ -97,51 +101,51 @@ ctx.lineWidth = 3;
     ctx.stroke();
 
     ctx.fillStyle = "#1d3557";
-    const isTouchDevice =
-    "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    
     ctx.textAlign = "center";
 
-    ctx.font = "48px Arial"
+   ctx.font = GS.isPhone ? "48px Arial" : "48px Arial";
    ctx.fillText(
     "Statistics",
     canvas.width / 2,
-    panelY + 52
+    GS.isPhone ? panelY + 55 : panelY + 52
 );
 
-    ctx.font = "28px Arial";
+    ctx.font = GS.isPhone ? "20px Arial" : "28px Arial";
 
-    function drawStatRow(
+   function drawStatRow(
     icon: string,
     label: string,
     value: string | number,
     y: number
 ) {
-    const startX = panelX + 45;
+
+    const leftPadding = GS.isPhone ? 18 : 45;
+   const iconSize = GS.isPhone ? "26px Arial" : "26px Arial";
+const textSize = GS.isPhone ? "26px Arial" : "24px Arial";
+
+    const startX = panelX + leftPadding;
 
     ctx.textAlign = "left";
 
-    // icon
-    ctx.font = "26px Arial";
+    ctx.font = iconSize;
     ctx.fillText(icon, startX, y);
 
-    // label
-    ctx.font = "24px Arial";
+    ctx.font = textSize;
     ctx.fillStyle = "#1d3557";
 
     ctx.fillText(
         label,
-        startX + 38,
+        startX + (GS.isPhone ? 28 : 38),
         y
     );
 
-    // value
     ctx.textAlign = "right";
-
     ctx.fillStyle = "#234b84";
 
     ctx.fillText(
         String(value),
-        panelX + panelWidth - 55,
+        panelX + panelWidth - leftPadding,
         y
     );
 
@@ -149,7 +153,7 @@ ctx.lineWidth = 3;
     ctx.fillStyle = "#1d3557";
 }
 
-  let y = panelY + 105;
+  let y = GS.isPhone ? panelY + 110 : panelY + 105;
 
 drawStatRow(
     "🎮",
@@ -158,7 +162,7 @@ drawStatRow(
     y
 );
 
-y += 50;
+y += GS.isPhone ? 58 : 50;
 
 drawStatRow(
     "🚧",
@@ -167,7 +171,7 @@ drawStatRow(
     y
 );
 
-y += 50;
+y += GS.isPhone ? 58 : 50;
 
 drawStatRow(
     "💥",
@@ -176,7 +180,7 @@ drawStatRow(
     y
 );
 
-y += 50;
+y += GS.isPhone ? 58 : 50;
 
 drawStatRow(
     "🏆",
@@ -185,7 +189,7 @@ drawStatRow(
     y
 );
 
-y += 50;
+y += GS.isPhone ? 58 : 50;
 
 drawStatRow(
     "⏱",
@@ -194,7 +198,7 @@ drawStatRow(
     y
 );
 
-y += 50;
+y += GS.isPhone ? 58 : 50;
 
 drawStatRow(
     "📈",

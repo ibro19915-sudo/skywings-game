@@ -1,11 +1,15 @@
 import { GS } from "./gameState.js";
-import { ctx, canvas, bird, ground, clouds, pipes, bronzeMedal, silverMedal, goldMedal, diamondMedal, PLAYABLE_HEIGHT } from "./game.js";
+import { ctx, canvas, bird, ground, clouds, pipes, bronzeMedal, silverMedal, goldMedal, diamondMedal, PLAYABLE_HEIGHT,layoutActiveScreen } from "./game.js";
 import { playMenuMusic } from "./audio.js";
+
+
 import {
     drawPauseScreen,
     drawMenu,
     drawShop
 } from "./ui.js";
+
+import { drawLoginScreen } from "./loginScreen.js";
 import {
     
     renderGameOver,
@@ -28,6 +32,10 @@ import {
     shopBackButton
 } from "./game.js";
 
+
+
+
+
 import { checkDeath } from "./deathManager.js";
 import {
     updateBird
@@ -42,9 +50,12 @@ export function startGameLoop() {
 
     function gameLoop(): void {
         const now = performance.now();
-        const delta = (now - GS.lastTime) / 1000;
-        GS.delta = delta;
-        GS.lastTime = now; 
+        const rawDelta = (now - GS.lastTime) / 1000;
+
+const delta = Math.min(rawDelta, 0.033);
+
+GS.delta = delta;
+GS.lastTime = now;
 
 
        
@@ -59,24 +70,34 @@ export function startGameLoop() {
         }
 
         if (GS.gameOver) {
-            renderGameOver(
-                ctx,
-                canvas,
-                GS.score,
-                GS.bestScore,
-                GS.newRecord,
-                achievementText,
-                bronzeMedal,
-                silverMedal,
-                goldMedal,
-                diamondMedal,
-                medalText,
-                skinUnlockText
-            );
-            requestAnimationFrame(gameLoop);
-            return;
-        }
+    layoutActiveScreen();
 
+    renderGameOver(
+        ctx,
+        canvas,
+        GS.score,
+        GS.bestScore,
+        GS.newRecord,
+        achievementText,
+        bronzeMedal,
+        silverMedal,
+        goldMedal,
+        diamondMedal,
+        medalText,
+        skinUnlockText
+    );
+
+    requestAnimationFrame(gameLoop);
+    return;
+}
+
+          if (GS.showLoginScreen) {
+    drawLoginScreen();
+
+    requestAnimationFrame(gameLoop);
+    return;
+}
+      
         if (GS.paused) {
             drawPauseScreen(ctx, canvas);
             requestAnimationFrame(gameLoop);
@@ -88,6 +109,8 @@ export function startGameLoop() {
             requestAnimationFrame(gameLoop);
             return;
         }
+
+       
 
         if (GS.showStatistics) {
             if (GS.statisticsPopupOpening) {
@@ -193,6 +216,7 @@ ctx.fillText(
         GS.showResetSuccess = false;
 
         GS.showSettingsMenu = false;
+        layoutActiveScreen();
         GS.settingsMenuState = null;
 
     }
@@ -213,8 +237,10 @@ ctx.fillText(
         if (!GS.gameStarted) {
 
             GS.ensureMenuMusic(playMenuMusic);
-            GS.menuTime += 3 * delta;
-            GS.menuBirdY = 350 + Math.sin(GS.menuTime) * 15;
+           if (GS.countdownRunning || GS.showGo) {
+    GS.menuTime += 3 * delta;
+    GS.menuBirdY = 350 + Math.sin(GS.menuTime) * 15;
+}
             drawMenu(ctx, canvas, clouds, bird, ground, GS.menuBirdY, GS.menuTime, GS.countdownRunning, GS.countdown, GS.showGo, GS.currentSkinIndex, GS.skins, GS.score, GS.currentDifficulty);
             requestAnimationFrame(gameLoop);
             return;
@@ -274,7 +300,7 @@ renderHUD(
         ctx,
         canvas,
         GS.fpsCounter,
-        60
+        GS.isIPad ? 145 : 110
     );
 }
 

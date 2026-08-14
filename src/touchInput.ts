@@ -1,11 +1,58 @@
 import { GS } from "./gameState.js";
 import { canvas, bird, ground, clouds, pipes } from "./game.js";
-import { onChangeDifficultyNext, onChangeDifficultyPrev, onChangeSkinLeft, onChangeSkinRight, onSpace, onTogglePause, openSettingsMenu, resetAllProgress } from "./inputHandlers.js";
-import { playMenuMusic, stopMenuMusic, setAudioSettings } from "./audio.js";
+import {
+    onChangeDifficultyNext,
+    onChangeDifficultyPrev,
+    onChangeSkinLeft,
+    onChangeSkinRight,
+    onSpace,
+    openSettingsMenu,
+    resetAllProgress
+} from "./inputHandlers.js";
+import {
+playMenuMusic,
+stopMenuMusic,
+setAudioSettings
+
+} from "./audio.js";
+
 import { saveSettings, loadSettings } from "./settings.js";
 //Buttons
-import { handleMenuClick } from "./buttonManager.js";
+import {
+    shopButton,
+    statsButton,
+    settingsButton
+} from "./game.js";
 
+import {
+    loginActionButton,
+    loginBackButton
+} from "./loginScreen.js";
+
+import { handleMenuClick } from "./buttonManager.js";
+import {
+    shopBackButton,
+    statisticsBackButton,
+    pauseButton,
+    pauseContinueButton,
+    pauseMainMenuButton,
+    restartButton,
+    shopPrevButton,
+    shopNextButton,
+    shopActionButton,
+    settingsBackButton,
+    backButton
+} from "./game.js";
+import {
+    settingsMusicButton,
+    settingsSoundButton,
+    settingsFPSButton,
+    difficultyLeftButton,
+    difficultyRightButton,
+    settingsResetButton,
+    settingsYesButton,
+    settingsNoButton
+} from "./game.js";
 function getCanvasTouchCoordinates(clientX: number, clientY: number): { x: number; y: number } {
     const rect = canvas.getBoundingClientRect();
     const width = rect.width || canvas.width;
@@ -22,7 +69,9 @@ let touchStartY = 0;
 let touchStartInDifficultyZone = false;
 
 export function initTouchHandlers() {
-    canvas.addEventListener("touchstart", (event) => {
+    canvas.addEventListener(
+    "touchstart",
+    (event) => {
         event.preventDefault();
 
         if (!GS.audioUnlocked) {
@@ -45,9 +94,7 @@ export function initTouchHandlers() {
 
         const isLeftEdge = x < canvas.width * 0.2;
         const isRightEdge = x > canvas.width * 0.8;
-        const isTopLeftCorner = x < canvas.width * 0.25 && y < canvas.height * 0.2;
-        const isTopRightCorner = x > canvas.width * 0.75 && y < canvas.height * 0.2;
-        const isBottomLeftCorner = x < canvas.width * 0.25 && y > canvas.height * 0.8;
+      
         const isBottomCenter = x >= canvas.width * 0.25 && x <= canvas.width * 0.75 && y > canvas.height * 0.8;
         const isCenterArea = x >= canvas.width * 0.25 && x <= canvas.width * 0.75;
         const difficultyTextY = canvas.height * 0.38;
@@ -86,146 +133,73 @@ export function initTouchHandlers() {
         }
 
         if (isIPadDifficultyArea) {
-            onChangeDifficultyNext();
-            return;
-        }
 
-        if (GS.showSettingsMenu && GS.settingsMenuState) {
-            if (isBottomLeftCorner) {
-                GS.showSettingsMenu = false;
-                GS.settingsMenuState = null;
-                GS.showResetConfirmation = false;
-                return;
-            }
+    if (x < canvas.width / 2) {
+        onChangeDifficultyPrev();
+    } else {
+        onChangeDifficultyNext();
+    }
 
-            const optionRowHeight = 54;
-            const optionStartY = 180;
-            const optionIndex = Math.floor((y - optionStartY + optionRowHeight / 2) / optionRowHeight);
-
-            if (GS.showResetConfirmation) {
-                if (x < canvas.width / 2) {
-                    GS.resetConfirmationChoice = "yes";
-                   resetAllProgress();
-
-GS.showResetConfirmation = false;
-
-GS.showResetSuccess = true;
-GS.resetSuccessTimer = 180;
-                } else {
-                    GS.resetConfirmationChoice = "no";
-                    GS.showResetConfirmation = false;
-                }
-                return;
-            }
-
-            if (optionIndex === 0) {
-                const currentIndex = GS.difficulties.indexOf(GS.settingsMenuState.settings.difficulty);
-                const nextIndex = (currentIndex + 1) % GS.difficulties.length;
-                GS.settingsMenuState.settings.difficulty = GS.difficulties[nextIndex];
-                GS.settings = GS.settingsMenuState.settings;
-                GS.currentDifficulty = GS.settings.difficulty;
-                saveSettings(GS.settings);
-                setAudioSettings(GS.settings);
-                return;
-            }
-
-            if (optionIndex === 1) {
-                GS.settingsMenuState.settings.soundEffects = !GS.settingsMenuState.settings.soundEffects;
-                GS.settings = GS.settingsMenuState.settings;
-                saveSettings(GS.settings);
-                setAudioSettings(GS.settings);
-                if (GS.settings.music && !GS.gameStarted && !GS.menuMusicPlaying) {
-                    playMenuMusic();
-                    GS.menuMusicPlaying = true;
-                }
-                return;
-            }
-
-            if (optionIndex === 2) {
-                GS.settingsMenuState.settings.music = !GS.settingsMenuState.settings.music;
-                GS.settings = GS.settingsMenuState.settings;
-                saveSettings(GS.settings);
-                setAudioSettings(GS.settings);
-                if (GS.settings.music && !GS.gameStarted && !GS.menuMusicPlaying) {
-                    playMenuMusic();
-                    GS.menuMusicPlaying = true;
-                }
-                if (!GS.settings.music) {
-                    stopMenuMusic();
-                    GS.menuMusicPlaying = false;
-                }
-                return;
-            }
-
-            if (optionIndex === 3) {
-                GS.settingsMenuState.settings.fpsCounter = !GS.settingsMenuState.settings.fpsCounter;
-                GS.settings = GS.settingsMenuState.settings;
-                saveSettings(GS.settings);
-                return;
-            }
-
-            if (optionIndex === 4) {
-                GS.showResetConfirmation = true;
-                GS.resetConfirmationChoice = "yes";
-                return;
-            }
-
-            if (optionIndex === 5) {
-                GS.showSettingsMenu = false;
-                GS.settingsMenuState = null;
-                return;
-            }
-
-            return;
-        }
-
-        if (GS.showStatistics) {
-            if (isBottomLeftCorner) GS.showStatistics = false;
-            return;
-        }
-
-        if (GS.showShop) {
-            if (isBottomLeftCorner) {
-                GS.showShop = false;
-                return;
-            }
-
-            if (isLeftEdge) { onChangeSkinLeft(); return; }
-            if (isRightEdge) { onChangeSkinRight(); return; }
-            if (isCenterArea) { onSpace(); return; }
-            return;
-        }
-
-        if (GS.gameOver) { onSpace(); return; }
-
-        if (GS.gameStarted && GS.paused && !GS.gameOver) { onTogglePause(); return; }
-
-        if (GS.gameStarted && !GS.paused && !GS.gameOver && isTopRightCorner) { onTogglePause(); return; }
-
-        if (!GS.gameStarted && !GS.countdownRunning && !GS.showStatistics && !GS.showSettingsMenu) {
-           if (handleMenuClick(x, y)) {
     return;
 }
 
-// Keep skin changing for now
-if (isLeftEdge) {
-    onChangeSkinLeft();
+// =========================
+// LOGIN SCREEN
+// =========================
+
+if (GS.showLoginScreen) {
+    if (loginActionButton.contains(x, y)) {
+        handleMenuClick(x, y);
+        return;
+    }
+
+    if (loginBackButton.contains(x, y)) {
+        handleMenuClick(x, y);
+        return;
+    }
+
     return;
 }
 
-if (isRightEdge) {
-    onChangeSkinRight();
-    return;
+     
+
+// Let buttonManager handle ALL menu buttons
+if (!GS.gameStarted) {
+    if (handleMenuClick(x, y)) {
+        return;
+    }
 }
 
-return;
-        }
+// PAUSED SCREEN
+if (GS.paused) {
+    if (handleMenuClick(x, y)) {
+        return;
+    }
+}
 
-        if (GS.gameStarted && !GS.paused && !GS.gameOver) { onSpace(); }
-    });
+// GAME OVER SCREEN
+if (GS.gameOver) {
+    if (handleMenuClick(x, y)) {
+        return;
+    }
+}
+
+// IN-GAME
+if (!GS.paused && GS.gameStarted && !GS.gameOver) {
+    if (pauseButton.contains(x, y)) {
+        handleMenuClick(x, y);
+        return;
+    }
+
+    // Tap anywhere else = flap
+    onSpace();
+}
+     },
+    { passive: false }
+);
 
     canvas.addEventListener("touchend", (event) => {
-        if (!GS.isTouchDevice || !GS.isIPhone || !touchStartInDifficultyZone) return;
+        if (!GS.isTouchDevice) return;
 
         event.preventDefault();
 
@@ -237,5 +211,7 @@ return;
         if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
             if (deltaX < 0) onChangeDifficultyNext(); else onChangeDifficultyPrev();
         }
-    });
+    },
+{ passive: false }
+);
 }

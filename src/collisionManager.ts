@@ -3,6 +3,7 @@ import { Pipe } from "./pipe.js";
 import { checkCollision } from "./collision.js";
 import { saveStatistics } from "./statistics.js";
 import { playHit, playDie } from "./audio.js";
+import { layoutActiveScreen } from "./game.js";
 
 export function checkPipeCollisions(
     bird: Bird,
@@ -42,6 +43,7 @@ export function checkPipeCollisions(
             saveStatistics(gameState.statistics);
 
             gameState.gameOver = true;
+            layoutActiveScreen();
 
             return;
         }

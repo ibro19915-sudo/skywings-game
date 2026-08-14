@@ -1,31 +1,34 @@
 import { GS } from "./gameState.js";
-import { bird, ground, clouds, pipes, initScene } from "./game.js";
+import { layoutActiveScreen } from "./game.js";
+import { bird, ground, clouds, pipes } from "./game.js";
 import { saveUnlockedSkin, isSkinUnlocked, saveSelectedSkin, getSelectedSkin, SkinType } from "./skins.js";
 import { Pipe } from "./pipe.js";
 import { saveStatistics, loadStatistics } from "./statistics.js";
 import { saveDifficulty, getDifficulty } from "./difficulty.js";
 import { loadSettings, saveSettings } from "./settings.js";
 import { createSettingsMenuState, updateSettingsMenu } from "./settingsMenu.js";
-import { playWing, playScore, playHit, playDie, playMenuMusic, stopMenuMusic, setAudioSettings } from "./audio.js";
+import { playWing,  playMenuMusic, stopMenuMusic, setAudioSettings } from "./audio.js";
 import { resetGame as resetGameInternal } from "./reset.js";
-import { addXP } from "./xp.js";
-import { setupInput } from "./input.js";
-import { onScore } from "./achievements.js";
-import {
-    settingsYesButton,
-    settingsNoButton
-} from "./game.js";
 
-export function setupHandlers() {
-    // noop placeholder in case initialization needed later
-}
+import { setupInput } from "./input.js";
+
+import {
+    openLoginScreen,
+    handleLoginKey
+} from "./loginScreen.js";
+
+
+
+
 
 export function onTogglePause(): void {
     if (GS.gameStarted && !GS.gameOver) {
         if (!GS.paused && !GS.resumeCountdownRunning) {
             GS.paused = true;
+            layoutActiveScreen();
         } else if (GS.paused) {
             GS.paused = false;
+            layoutActiveScreen();
             GS.resumeCountdownRunning = true;
             GS.resumeCountdown = 3;
 
@@ -105,55 +108,38 @@ export function onSpace(): void {
         const requiredPipes = requirements[GS.selectedShopSkin];
 
         const alreadyOwned = isSkinUnlocked(skin);
-
         const canUnlock = GS.statistics.totalPipes >= requiredPipes;
+        const alreadySelected = GS.skins[GS.currentSkinIndex] === skin;
 
-        const alreadySelected =
-    GS.skins[GS.currentSkinIndex] === skin;
+        if (alreadySelected) {
+            return;
+        }
 
-if (alreadySelected) {
-    return;
-}
+        if (alreadyOwned) {
+            saveSelectedSkin(skin);
+            GS.currentSkinIndex = GS.skins.indexOf(skin);
+            bird.loadSkin();
+            GS.showShop = false;
+            layoutActiveScreen();
+            return;
+        }
 
-if (alreadyOwned) {
+        if (canUnlock) {
+            const price = GS.skinPrices[GS.selectedShopSkin];
 
-    saveSelectedSkin(skin);
+            if (GS.statistics.coins >= price) {
+                GS.statistics.coins -= price;
+                saveUnlockedSkin(skin);
+                saveSelectedSkin(skin);
+                GS.currentSkinIndex = GS.skins.indexOf(skin);
+                saveStatistics(GS.statistics);
+                bird.loadSkin();
+                GS.showShop = false;
+                layoutActiveScreen();
+            }
+        }
 
-    GS.currentSkinIndex =
-        GS.skins.indexOf(skin);
-
-    bird.loadSkin();
-
-    GS.showShop = false;
-
-    return;
-}
-
-if (canUnlock) {
-
-    const price =
-        GS.skinPrices[GS.selectedShopSkin];
-
-    if (GS.statistics.coins >= price) {
-
-        GS.statistics.coins -= price;
-
-        saveUnlockedSkin(skin);
-
-        saveSelectedSkin(skin);
-
-        GS.currentSkinIndex =
-            GS.skins.indexOf(skin);
-
-        saveStatistics(GS.statistics);
-
-        bird.loadSkin();
-
-        GS.showShop = false;
-    }
-}
-
-return;
+        return;
     }
 
     if (GS.showSettingsMenu || GS.showStatistics) return;
@@ -178,14 +164,29 @@ return;
                 GS.menuMusicPlaying = false;
 
                 setTimeout(() => {
-                    GS.showGo = false;
-                    GS.gameStarted = true;
+              GS.showGo = false;
+GS.gameStarted = true;
 
-                    GS.statistics.gamesPlayed++;
-                    saveStatistics(GS.statistics);
-                    bird.y = GS.menuBirdY;
-                    bird.jump();
-                    playWing();
+stopMenuMusic();
+GS.menuMusicPlaying = false;
+
+GS.lastTime = performance.now();
+GS.delta = 0;
+GS.accumulator = 0;
+
+layoutActiveScreen();
+
+// Reset bird state before first jump
+bird.y = GS.menuBirdY;
+bird.velocityY = 0;
+bird.angle = 0;
+
+GS.statistics.gamesPlayed++;
+saveStatistics(GS.statistics);
+
+// Give the bird an initial flap
+bird.jump();
+playWing();
                 }, 700);
             }
         }, 1000);
@@ -193,15 +194,25 @@ return;
     } else if (GS.gameOver) {
         GS.score = 0;
         GS.gameOver = false;
+        layoutActiveScreen();
         GS.gameStarted = false;
 
         GS.newRecord = false;
         GS.paused = false;
+        layoutActiveScreen();
 
         GS.menuTime = 0;
         GS.menuBirdY = 350;
 
-        resetGameInternal(bird, ground, clouds, pipes, Pipe, GS.statistics);
+       resetGameInternal(
+    bird,
+    ground,
+    clouds,
+    pipes,
+    Pipe,
+    GS.statistics,
+    GS.currentDifficulty
+);
 
         if (GS.settings.music && !GS.menuMusicPlaying) {
             playMenuMusic();
@@ -223,6 +234,7 @@ export function openSettingsMenu(): void {
         GS.showSettingsMenu = true;
         GS.showResetConfirmation = false;
         GS.resetConfirmationChoice = "yes";
+        layoutActiveScreen();
     }
 }
 
@@ -263,6 +275,15 @@ export function resetAllProgress(): void {
     saveSelectedSkin("red");
     GS.currentSkinIndex = 0;
     bird.loadSkin();
+    GS.showShop = false;
+    layoutActiveScreen();
+GS.showStatistics = false;
+    layoutActiveScreen();
+GS.showSettingsMenu = false;
+    layoutActiveScreen();
+GS.selectedShopSkin = 0;
+GS.showResetConfirmation = false;
+GS.showResetSuccess = false;
 }
 
 export function handleSettingsKey(key: string): void {
@@ -296,12 +317,7 @@ export function handleSettingsKey(key: string): void {
 
         GS.showResetConfirmation = false;
 
-        settingsYesButton.setPressed(false);
-        settingsNoButton.setPressed(false);
-
-        settingsYesButton.setHoverState(false);
-        settingsNoButton.setHoverState(false);
-
+       
         return;
     }
 
@@ -310,6 +326,7 @@ export function handleSettingsKey(key: string): void {
 
     if (key === "Escape") {
         GS.showSettingsMenu = false;
+        layoutActiveScreen();
         GS.settingsMenuState = null;
         return;
     }
@@ -336,13 +353,11 @@ export function handleSettingsKey(key: string): void {
         GS.menuMusicPlaying = false;
     }
 
-    if (GS.settings.music && !GS.menuMusicPlaying) {
-        playMenuMusic();
-        GS.menuMusicPlaying = true;
-    }
+    
 
     if (key === "Enter" && GS.settingsMenuState.selectedOption === "back") {
         GS.showSettingsMenu = false;
+        layoutActiveScreen();
         GS.settingsMenuState = null;
     }
 }
@@ -355,15 +370,22 @@ export function initializeInput() {
         onChangeSkinRight,
         onChangeDifficultyPrev,
         onChangeDifficultyNext,
+
+        onLoginKey: (key: string) => {
+    handleLoginKey(key);
+},
         onOpenShop: () => {
             if (
     !GS.gameStarted &&
     !GS.countdownRunning &&
     !GS.showGo &&
     !GS.showStatistics &&
-    !GS.showSettingsMenu
+    !GS.showSettingsMenu &&
+    !GS.showShop
+    
 ) {
                 GS.showShop = true;
+                layoutActiveScreen();
                 GS.selectedShopSkin = 0;
             }
         },
@@ -373,6 +395,7 @@ export function initializeInput() {
     !GS.countdownRunning &&
     !GS.showGo &&
     !GS.showStatistics &&
+    !GS.showShop&&
     !GS.showSettingsMenu
 ) {
                 openSettingsMenu();
@@ -388,7 +411,8 @@ export function initializeInput() {
         !GS.countdownRunning &&
         !GS.showGo &&
         !GS.showStatistics &&
-        !GS.showSettingsMenu
+        !GS.showSettingsMenu &&
+         !GS.showShop
     ) {
 
         GS.statisticsPopupScale = 0.9;
@@ -396,6 +420,7 @@ export function initializeInput() {
         GS.statisticsPopupOpening = true;
 
         GS.showStatistics = true;
+        layoutActiveScreen();
     }
 },
         onHideStatistics: () => {
@@ -403,6 +428,7 @@ export function initializeInput() {
                 GS.showShop = false;
             } else if (GS.showSettingsMenu) {
                 GS.showSettingsMenu = false;
+                layoutActiveScreen();
                 GS.settingsMenuState = null;
             } else if (GS.showStatistics) {
 

@@ -173,8 +173,8 @@ export function drawSettingsMenu(
     ctx.textAlign = "left";
     ctx.font = "24px Arial";
 
-const iconX = canvas.width * 0.12;
-const textX = iconX + 42;
+const iconX = GS.isPhone ? 10 : canvas.width * 0.12;
+const textX = GS.isPhone ? iconX + 34 : iconX + 42;
 
 ctx.fillText("🎵", iconX, settingsMusicButton.y + 36);
 ctx.fillText("Music", textX, settingsMusicButton.y + 36);
